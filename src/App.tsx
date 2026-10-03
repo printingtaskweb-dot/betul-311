@@ -9,6 +9,8 @@ import { AuthPage } from './pages/AuthPage';
 import { GreenDepartmentPage } from './pages/GreenDepartmentPage';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import DeptLogin from './pages/DeptLogin';
+import DeptDashboard from './pages/DeptDashboard';
 
 const AppRoutes: React.FC = () => (
   <Routes>
@@ -20,6 +22,10 @@ const AppRoutes: React.FC = () => (
 
     {/* Department-specific routes */}
     <Route path="/department/green" element={<GreenDepartmentPage />} />
+
+    {/* Department Portal (staff login + dashboard) */}
+    <Route path="/dept/login" element={<DeptLogin />} />
+    <Route path="/dept/dashboard" element={<DeptDashboard />} />
 
     {/* Admin routes */}
     <Route path="/admin" element={<AdminLogin />} />
