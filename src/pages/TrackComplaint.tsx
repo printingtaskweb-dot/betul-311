@@ -7,7 +7,7 @@ import type { Complaint } from '../lib/supabase';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { supabase } from '../lib/supabase';
 import { BottomNav } from '../components/BottomNav';
-import { ArrowLeft, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle2, XCircle, Compass, Navigation } from 'lucide-react';
 
 export const TrackComplaint: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -219,11 +219,84 @@ export const TrackComplaint: React.FC = () => {
                 {complaint.description}
               </p>
               {complaint.address && (
-                <p style={{ margin: '0 0 14px', fontSize: '0.82rem', color: 'var(--gray-500)' }}>
+                <p style={{ margin: '0 0 8px', fontSize: '0.82rem', color: 'var(--gray-500)' }}>
                   📍 {complaint.address}
                 </p>
               )}
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-400)' }}>
+
+              {/* GPS Coordinates + Navigation */}
+              {complaint.latitude && complaint.longitude && (
+                <div
+                  style={{
+                    background: 'var(--green-50)',
+                    border: '1.5px solid var(--green-300)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 14px',
+                    marginBottom: 12,
+                  }}
+                >
+                  {/* Exact Coordinates Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--green-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      🎯 {language === 'hi' ? 'सटीक GPS स्थान' : 'Exact GPS Coordinates'}
+                    </span>
+                    <code style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--green-800)', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--green-200)' }}>
+                      {complaint.latitude.toFixed(6)}, {complaint.longitude.toFixed(6)}
+                    </code>
+                  </div>
+
+                  {/* Navigation Action Buttons */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${complaint.latitude},${complaint.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        textDecoration: 'none',
+                        boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                        minWidth: 160,
+                      }}
+                    >
+                      <Navigation size={15} />
+                      {language === 'hi' ? 'दिशा-निर्देश पाएं' : 'Get Directions'}
+                    </a>
+                    <a
+                      href={`https://maps.google.com/?q=${complaint.latitude},${complaint.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: '#fff',
+                        color: 'var(--blue-600)',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        textDecoration: 'none',
+                        border: '1.5px solid var(--blue-600)',
+                      }}
+                    >
+                      <Compass size={15} />
+                      {language === 'hi' ? 'मानचित्र पर देखें' : 'View on Map'}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              <p style={{ margin: '0 0 0', fontSize: '0.75rem', color: 'var(--gray-400)' }}>
                 {language === 'hi' ? 'शिकायत का समय:' : 'Submitted on:'}{' '}
                 {new Date(complaint.created_at).toLocaleString('en-IN')}
               </p>

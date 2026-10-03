@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Complaint } from '../../lib/supabase';
 import { StatusBadge } from './StatusBadge';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, Navigation } from 'lucide-react';
 
 interface ComplaintCardProps {
   complaint: Complaint;
@@ -64,9 +64,36 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint, onClick
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-          <Clock size={11} color="#9ca3af" />
-          <span style={{ fontSize: 12, color: '#9ca3af' }}>{date}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={11} color="#9ca3af" />
+            <span style={{ fontSize: 12, color: '#9ca3af' }}>{date}</span>
+          </div>
+
+          {complaint.latitude && complaint.longitude && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${complaint.latitude},${complaint.longitude}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--green-50)',
+                color: 'var(--green-700)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                border: '1px solid var(--green-200)',
+                transition: 'var(--transition)',
+              }}
+            >
+              <Navigation size={10} /> Directions
+            </a>
+          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import type { Complaint, ComplaintStatus } from '../../lib/supabase';
 import { useComplaints } from '../../hooks/useComplaints';
 import { ComplaintCard } from '../common/ComplaintCard';
 import { ResolutionForm } from './ResolutionForm';
-import { Search, X } from 'lucide-react';
+import { Search, X, Navigation } from 'lucide-react';
 
 const STATUS_FILTERS: { label: string; value: ComplaintStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -226,14 +226,61 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
               {selected.description}
             </p>
             {selected.address && (
-              <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', margin: '0 0 10px' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', margin: '0 0 8px' }}>
                 📍 {selected.address}
               </p>
             )}
             {selected.citizen_name && (
-              <p style={{ fontSize: '0.82rem', color: 'var(--gray-700)', margin: '0 0 14px' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--gray-700)', margin: '0 0 12px' }}>
                 👤 {selected.citizen_name} {selected.citizen_phone && `· ${selected.citizen_phone}`}
               </p>
+            )}
+
+            {/* Accurate GPS Coordinates & Get Directions Navigation Button */}
+            {selected.latitude && selected.longitude && (
+              <div
+                style={{
+                  background: 'var(--green-50)',
+                  border: '1.5px solid var(--green-300)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '12px 14px',
+                  marginBottom: 16,
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--green-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    🎯 Exact Location GPS
+                  </span>
+                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--green-800)' }}>
+                    {selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}
+                  </span>
+                </div>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px 16px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                    transition: 'var(--transition)',
+                  }}
+                >
+                  <Navigation size={16} /> Get Directions (Google Maps)
+                </a>
+              </div>
             )}
 
             <ResolutionForm

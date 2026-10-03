@@ -300,6 +300,7 @@ export const ComplaintForm: React.FC = () => {
               <LocationPicker
                 latitude={loc.latitude}
                 longitude={loc.longitude}
+                accuracy={loc.accuracy}
                 address={loc.address}
                 loading={loc.loading}
                 error={loc.error}

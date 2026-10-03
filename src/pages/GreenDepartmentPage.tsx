@@ -360,6 +360,7 @@ export const GreenDepartmentPage: React.FC = () => {
                 <LocationPicker
                   latitude={gps.latitude}
                   longitude={gps.longitude}
+                  accuracy={gps.accuracy}
                   address={gps.address}
                   loading={gps.loading}
                   error={gps.error}
