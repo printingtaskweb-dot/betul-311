@@ -5,11 +5,14 @@ import type { Session, User } from '@supabase/supabase-js';
 
 export interface UserProfile {
   id: string;
+  email?: string | null;
   full_name: string | null;
   phone: string | null;
   language: 'en' | 'hi';
   ward_number: string | null;
   is_admin?: boolean;
+  role?: string | null;
+  linked_department_id?: string | null;
 }
 
 interface AuthContextType {
