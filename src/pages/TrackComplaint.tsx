@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { t } from '../lib/i18n';
@@ -7,28 +7,69 @@ import type { Complaint } from '../lib/supabase';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { supabase } from '../lib/supabase';
 import { BottomNav } from '../components/BottomNav';
-import { ArrowLeft, Search, CheckCircle2, XCircle, Compass, Navigation } from 'lucide-react';
+import {
+  ArrowLeft, Search, CheckCircle2, XCircle, Compass,
+  Navigation, Camera, X
+} from 'lucide-react';
+
+interface ResolutionData {
+  id: string;
+  admin_note: string;
+  resolution_photo_url: string | null;
+  resolved_by: string;
+  resolved_at: string;
+}
 
 export const TrackComplaint: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { language } = useAuth();
+  const { user, language } = useAuth();
   const { getComplaintByTicket } = useComplaints();
   const [ticket, setTicket] = useState(searchParams.get('ticket') || '');
   const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [resolution, setResolution] = useState<ResolutionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
+
+  // Department resolve modal states
+  const [resolvingModal, setResolvingModal] = useState(false);
+  const [resolveNote, setResolveNote] = useState('');
+  const [resolveBy, setResolveBy] = useState('');
+  const [resolvePhoto, setResolvePhoto] = useState<File | null>(null);
+  const [resolvePreview, setResolvePreview] = useState<string | null>(null);
+  const [submittingResolve, setSubmittingResolve] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchResolution = async (complaintId: string) => {
+    try {
+      const { data } = await supabase
+        .from('resolutions')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('resolved_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setResolution(data);
+    } catch {
+      setResolution(null);
+    }
+  };
 
   const handleSearch = async () => {
     if (!ticket.trim()) return;
     setLoading(true);
     setNotFound(false);
     setComplaint(null);
+    setResolution(null);
     const result = await getComplaintByTicket(ticket.trim().toUpperCase());
-    if (result) setComplaint(result);
-    else setNotFound(true);
+    if (result) {
+      setComplaint(result);
+      await fetchResolution(result.id);
+    } else {
+      setNotFound(true);
+    }
     setLoading(false);
   };
 
@@ -52,6 +93,68 @@ export const TrackComplaint: React.FC = () => {
     }
     setVerified(true);
     setVerifying(false);
+  };
+
+  const handlePhotoSelect = (file: File) => {
+    setResolvePhoto(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setResolvePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitResolve = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!complaint) return;
+    if (!resolveNote.trim()) {
+      alert(language === 'hi' ? 'कृपया कार्य का विवरण दर्ज करें' : 'Please enter resolution notes');
+      return;
+    }
+
+    setSubmittingResolve(true);
+    try {
+      let photoUrl: string | null = null;
+      if (resolvePhoto) {
+        const ext = resolvePhoto.name.split('.').pop();
+        const path = `resolutions/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('complaint-photos')
+          .upload(path, resolvePhoto);
+        if (upErr) throw upErr;
+        const { data: urlData } = supabase.storage
+          .from('complaint-photos')
+          .getPublicUrl(path);
+        photoUrl = urlData.publicUrl;
+      }
+
+      const resolverName = resolveBy.trim() || user?.email || 'Department Field Officer';
+      const { data: insertedRes, error: resErr } = await supabase
+        .from('resolutions')
+        .insert({
+          complaint_id: complaint.id,
+          admin_note: resolveNote.trim(),
+          resolution_photo_url: photoUrl,
+          resolved_by: resolverName,
+        })
+        .select()
+        .single();
+      if (resErr) throw resErr;
+
+      await supabase
+        .from('complaints')
+        .update({ status: 'resolved', updated_at: new Date().toISOString() })
+        .eq('id', complaint.id);
+
+      setComplaint({ ...complaint, status: 'resolved' });
+      setResolution(insertedRes);
+      setResolvingModal(false);
+      setResolveNote('');
+      setResolvePhoto(null);
+      setResolvePreview(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Resolution failed');
+    } finally {
+      setSubmittingResolve(false);
+    }
   };
 
   return (
@@ -301,6 +404,132 @@ export const TrackComplaint: React.FC = () => {
                 {new Date(complaint.created_at).toLocaleString('en-IN')}
               </p>
 
+              {/* ── Department Action Banner (Visible when pending / in_progress) ── */}
+              {(complaint.status === 'pending' || complaint.status === 'in_progress') && (
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: '16px',
+                    background: '#f0fdf4',
+                    border: '2px dashed #16a34a',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        🏢 {language === 'hi' ? 'विभाग अधिकारी / कर्मचारी कार्यवाही' : 'Department Officer Action'}
+                      </span>
+                      <h4 style={{ margin: '4px 0 2px', fontSize: '0.95rem', fontWeight: 800, color: '#166534' }}>
+                        {language === 'hi' ? 'क्या आपने कार्य पूरा कर लिया है?' : 'Have you completed this work on-site?'}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-600)' }}>
+                        {language === 'hi'
+                          ? 'कार्य समाप्ति का फोटो अपलोड करके शिकायत का निराकरण करें ताकि नागरिक सत्यापन कर सके।'
+                          : 'Upload work-done photo to resolve this complaint so the citizen can cross-check & verify.'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setResolvingModal(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        padding: '10px 18px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                      }}
+                    >
+                      <Camera size={16} />
+                      {language === 'hi' ? 'काम पूरा — फोटो अपलोड करें' : 'Resolve & Upload Work Photo'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Work-Done Cross-Check Proof Section (When resolution exists) ── */}
+              {resolution && (
+                <div
+                  style={{
+                    marginTop: 20,
+                    padding: '18px',
+                    background: '#fff',
+                    border: '2px solid #86efac',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: '0 4px 16px rgba(22,163,74,0.08)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      📸 {language === 'hi' ? 'विभाग द्वारा कार्य सत्यापन एवं प्रमाण' : 'Department Work Verification Proof'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>
+                      {new Date(resolution.resolved_at).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  {/* Side-by-side or stacked Before/After Comparison */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 14 }}>
+                    {complaint.photo_url && (
+                      <div>
+                        <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase' }}>
+                          🔴 {language === 'hi' ? 'शिकायत के समय की फोटो (Before)' : 'Complaint Photo (Before)'}
+                        </p>
+                        <a href={complaint.photo_url} target="_blank" rel="noreferrer">
+                          <img
+                            src={complaint.photo_url}
+                            alt="Before"
+                            style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--gray-200)' }}
+                          />
+                        </a>
+                      </div>
+                    )}
+
+                    {resolution.resolution_photo_url ? (
+                      <div>
+                        <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>
+                          🟢 {language === 'hi' ? 'कार्य समाप्ति का फोटो (After / Done)' : 'Work Done Photo (After)'}
+                        </p>
+                        <a href={resolution.resolution_photo_url} target="_blank" rel="noreferrer">
+                          <img
+                            src={resolution.resolution_photo_url}
+                            alt="After"
+                            style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '2px solid #86efac' }}
+                          />
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ background: 'var(--gray-50)', borderRadius: 'var(--radius-sm)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px dashed var(--gray-200)' }}>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-400)' }}>
+                          {language === 'hi' ? 'कार्य का फोटो संलग्न नहीं' : 'No completion photo attached'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resolution note */}
+                  <div style={{ padding: '12px 14px', background: '#f0fdf4', borderRadius: 'var(--radius-sm)', border: '1px solid #bbf7d0' }}>
+                    <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 800, color: '#15803d' }}>
+                      📝 {language === 'hi' ? 'निराकरण टिप्पणी:' : 'Resolution Note:'}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--gray-800)', lineHeight: 1.5 }}>
+                      {resolution.admin_note}
+                    </p>
+                    {resolution.resolved_by && (
+                      <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                        {language === 'hi' ? 'समाधानकर्ता:' : 'Resolved by:'} <strong>{resolution.resolved_by}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Status Timeline */}
               <div
                 style={{
@@ -444,6 +673,214 @@ export const TrackComplaint: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Department Staff Resolution Modal on Track Page ── */}
+      {resolvingModal && complaint && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              background: '#fff',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 800 }}>
+                  📸 {language === 'hi' ? 'शिकायत का समाधान दर्ज करें' : 'Resolve Complaint & Upload Work Photo'}
+                </h3>
+                <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem' }}>
+                  #{complaint.ticket_number}
+                </p>
+              </div>
+              <button
+                onClick={() => setResolvingModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitResolve} style={{ padding: 24 }}>
+              {/* Officer / Resolver Name */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--gray-700)', marginBottom: 6 }}>
+                  👤 {language === 'hi' ? 'अधिकारी / कर्मचारी का नाम' : 'Resolved by (Officer / Team)'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={user?.email || 'e.g. Ramesh Verma (Field Officer)'}
+                  value={resolveBy}
+                  onChange={(e) => setResolveBy(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1.5px solid var(--gray-200)',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Work Done Note */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--gray-700)', marginBottom: 6 }}>
+                  📝 {language === 'hi' ? 'कार्य का विवरण (नागरिक इसे देखेगा) *' : 'Resolution Details (Visible to citizen) *'}
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder={language === 'hi' ? 'समस्या का समाधान कैसे हुआ? स्थल से कचरा उठा लिया गया...' : 'What action was taken to fix this issue?...'}
+                  value={resolveNote}
+                  onChange={(e) => setResolveNote(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1.5px solid var(--gray-200)',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              {/* Work-Done Photo Upload */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--gray-700)', marginBottom: 6 }}>
+                  📷 {language === 'hi' ? 'कार्य समाप्ति का फोटो (प्रमाण हेतु)' : 'Work-Done Completion Photo (Proof)'}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={(e) => e.target.files?.[0] && handlePhotoSelect(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+
+                {!resolvePreview ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: '2px dashed var(--green-300)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      background: 'var(--green-50)',
+                    }}
+                  >
+                    <Camera size={26} color="var(--green-600)" style={{ margin: '0 auto 6px', display: 'block' }} />
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-800)' }}>
+                      {language === 'hi' ? 'फोटो खींचें या गैलरी से चुनें' : 'Take or Upload Resolution Photo'}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--gray-400)' }}>
+                      JPG, PNG, WEBP
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={resolvePreview}
+                      alt="Work done"
+                      style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '2px solid #86efac' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setResolvePhoto(null); setResolvePreview(null); }}
+                      style={{
+                        position: 'absolute', top: 8, right: 8,
+                        background: 'rgba(0,0,0,0.65)', border: 'none', borderRadius: '50%',
+                        width: 28, height: 28, color: '#fff', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Buttons */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setResolvingModal(false)}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)',
+                    border: '1.5px solid var(--gray-200)', background: '#fff',
+                    color: 'var(--gray-600)', fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  {language === 'hi' ? 'रद्द करें' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingResolve}
+                  style={{
+                    flex: 2, padding: '12px', borderRadius: 'var(--radius-sm)',
+                    border: 'none', background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: '#fff', fontWeight: 800, fontSize: '0.9rem',
+                    cursor: submittingResolve ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+                  }}
+                >
+                  {submittingResolve ? (
+                    <span className="spinner" style={{ width: 16, height: 16 }} />
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      {language === 'hi' ? 'समाधान जमा करें' : 'Submit as Resolved'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

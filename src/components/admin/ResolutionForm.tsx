@@ -80,51 +80,70 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ complaint, onUpd
       </div>
 
       {/* Action buttons based on status */}
-      {complaint.status === 'pending' && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-          <button onClick={handleMarkInProgress} style={btnStyle('#2563eb')}>
-            Mark In Progress
-          </button>
-          <button onClick={handleReject} style={btnStyle('#dc2626')}>
-            <XCircle size={15} /> Reject
-          </button>
-        </div>
-      )}
-
-      {complaint.status === 'in_progress' && (
+      {(complaint.status === 'pending' || complaint.status === 'in_progress') && (
         <div style={{ marginBottom: 20 }}>
-          <h4 style={{ marginBottom: 12, color: '#374151' }}>Submit Resolution</h4>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+            <h4 style={{ margin: 0, color: '#374151', fontSize: '0.95rem', fontWeight: 800 }}>
+              📸 Resolve Complaint & Upload Work Photo
+            </h4>
+            {complaint.status === 'pending' && (
+              <button
+                onClick={handleMarkInProgress}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--blue-50)',
+                  color: 'var(--blue-600)',
+                  border: '1px solid var(--blue-200)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Mark In Progress
+              </button>
+            )}
+          </div>
+
           <input
-            placeholder="Resolved by (name)"
+            placeholder="Resolved by officer / team name *"
             value={resolvedBy}
             onChange={(e) => setResolvedBy(e.target.value)}
             style={inputStyle}
           />
           <textarea
-            placeholder="Resolution notes..."
+            placeholder="Details of work done to fix this issue... *"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             style={{ ...inputStyle, resize: 'vertical', marginTop: 10 }}
           />
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>Resolution Photo</label>
-            <div style={{ marginTop: 6 }}>
-              <PhotoUploader
-                onFileSelected={handleFileSelected}
-                preview={preview}
-                onClear={() => { setPhotoFile(null); setPreview(null); }}
-                uploading={uploading}
-              />
-            </div>
+
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontSize: 13, color: '#166534', fontWeight: 700, display: 'block', marginBottom: 6 }}>
+              📷 Upload Work-Done Photo (Proof of work)
+            </label>
+            <PhotoUploader
+              onFileSelected={handleFileSelected}
+              preview={preview}
+              onClear={() => { setPhotoFile(null); setPreview(null); }}
+              uploading={uploading}
+            />
           </div>
+
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button
               onClick={handleResolve}
               disabled={submitting || uploading}
-              style={btnStyle('#16a34a')}
+              style={{
+                ...btnStyle('#16a34a'),
+                padding: '11px 18px',
+                fontSize: '0.9rem',
+                fontWeight: 800,
+                boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+              }}
             >
-              <CheckCircle2 size={15} /> Submit as Resolved
+              <CheckCircle2 size={16} /> Mark as Resolved
             </button>
             <button onClick={handleReject} style={btnStyle('#dc2626')}>
               <XCircle size={15} /> Reject

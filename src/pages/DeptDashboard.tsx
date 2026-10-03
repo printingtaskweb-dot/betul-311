@@ -291,8 +291,91 @@ function ComplaintDetailCard({
               <Calendar size={11} /> {fmtDate(c.created_at)}
             </span>
           </div>
+
+          {/* Always Visible Action Bar on Card */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 10,
+              paddingTop: 8,
+              borderTop: '1px solid var(--gray-100)',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            {c.latitude && c.longitude ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${c.latitude},${c.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '5px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <Navigation size={12} /> {hi ? 'दिशा-निर्देश' : 'Get Directions'}
+              </a>
+            ) : <div />}
+
+            {(c.status === 'pending' || c.status === 'in_progress') && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onResolve();
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                }}
+              >
+                <Camera size={14} />
+                {hi ? 'हल करें (फोटो अपलोड करें)' : 'Mark Resolved (Upload Photo)'}
+              </button>
+            )}
+
+            {c.status === 'resolved' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  background: '#d1fae5',
+                  color: '#065f46',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                }}
+              >
+                <CheckCircle size={13} /> {hi ? 'काम पूरा — सत्यापन प्रतीक्षा' : 'Resolved — Awaiting Verification'}
+              </span>
+            )}
+          </div>
         </div>
-        <div style={{ color: 'var(--gray-400)', flexShrink: 0 }}>
+        <div style={{ color: 'var(--gray-400)', flexShrink: 0, marginTop: 4 }}>
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </div>

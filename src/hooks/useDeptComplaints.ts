@@ -52,8 +52,44 @@ export function useDeptComplaints(departmentId: string | null) {
         );
       }
 
-      const { data, error: qErr } = await query;
-      if (qErr) throw qErr;
+      let { data, error: qErr } = await query;
+
+      // If view doesn't exist, fall back to standard table query
+      if (qErr) {
+        console.warn('dept_complaints view query failed, falling back to direct table:', qErr.message);
+        let fbQuery = supabase
+          .from('complaints')
+          .select('*, department:departments(*)')
+          .eq('department_id', departmentId)
+          .order('created_at', { ascending: false });
+
+        if (statusFilter && statusFilter !== 'all') {
+          fbQuery = fbQuery.eq('status', statusFilter);
+        }
+        if (searchQuery) {
+          fbQuery = fbQuery.or(
+            `ticket_number.ilike.%${searchQuery}%,citizen_name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
+          );
+        }
+
+        const { data: fbData, error: fbErr } = await fbQuery;
+        if (fbErr) throw fbErr;
+
+        data = (fbData || []).map((row: any) => ({
+          ...row,
+          dept_name: row.department?.name || '',
+          dept_slug: row.department?.slug || '',
+          dept_color: row.department?.color || '#16a34a',
+          dept_icon: row.department?.icon || '🏢',
+          resolution_note: null,
+          resolution_photo: null,
+          resolved_by: null,
+          resolved_at: null,
+          citizen_satisfied: null,
+          citizen_verified_at: null,
+        }));
+      }
+
       setComplaints(data || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch complaints');
