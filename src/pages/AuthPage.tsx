@@ -116,7 +116,7 @@ export const AuthPage: React.FC = () => {
       </div>
 
       {/* Card */}
-      <div style={{ maxWidth: 440, margin: '-28px auto 0', padding: '0 16px 100px' }}>
+      <div style={{ maxWidth: 440, margin: '10px auto 0', padding: '0 16px 100px' }}>
         <div style={{
           background: '#fff',
           borderRadius: 20,
