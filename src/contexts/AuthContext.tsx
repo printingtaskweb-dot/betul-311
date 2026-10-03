@@ -3,18 +3,20 @@ import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   full_name: string | null;
   phone: string | null;
   language: 'en' | 'hi';
   ward_number: string | null;
+  is_admin?: boolean;
 }
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  isAdmin: boolean;
   language: 'en' | 'hi';
   setLanguage: (lang: 'en' | 'hi') => void;
   loading: boolean;
@@ -23,6 +25,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+const DESIGNATED_ADMIN_EMAILS = ['ouikey41@gmail.com'];
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,14 +38,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (data) {
-      setProfile(data);
-      if (data.language) setLanguageState(data.language);
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (data) {
+        setProfile(data);
+        if (data.language) setLanguageState(data.language);
+      }
+    } catch {
+      // fallback
     }
   };
 
@@ -70,6 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    sessionStorage.removeItem('imc_admin');
     setProfile(null);
   };
 
@@ -77,8 +86,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) await fetchProfile(user.id);
   };
 
+  const userEmail = user?.email?.toLowerCase();
+  const isAdmin = Boolean(
+    profile?.is_admin === true ||
+    (userEmail && DESIGNATED_ADMIN_EMAILS.includes(userEmail)) ||
+    sessionStorage.getItem('imc_admin') === '1'
+  );
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, language, setLanguage, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        isAdmin,
+        language,
+        setLanguage,
+        loading,
+        signOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

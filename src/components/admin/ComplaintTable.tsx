@@ -28,7 +28,8 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
     const matchesSearch =
       c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
       c.description?.toLowerCase().includes(search.toLowerCase()) ||
-      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) || false;
+      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
+      false;
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -43,94 +44,167 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
 
   return (
     <div>
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, marginBottom: 24 }}>
+      {/* Stats summary row */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
         {[
-          { label: 'Total', value: stats.total, color: '#6366f1' },
-          { label: 'Pending', value: stats.pending, color: '#d97706' },
-          { label: 'In Progress', value: stats.in_progress, color: '#2563eb' },
+          { label: 'Total', value: stats.total, color: 'var(--indigo-600)' },
+          { label: 'Pending', value: stats.pending, color: 'var(--amber-500)' },
+          { label: 'In Progress', value: stats.in_progress, color: 'var(--blue-600)' },
           { label: 'Resolved', value: stats.resolved, color: '#7c3aed' },
-          { label: 'Verified', value: stats.verified, color: '#16a34a' },
+          { label: 'Verified', value: stats.verified, color: 'var(--green-600)' },
         ].map((s) => (
           <div
             key={s.label}
+            className="card-hover"
             style={{
-              background: '#fff', border: '1.5px solid #e5e7eb',
-              borderRadius: 10, padding: '12px 16px', textAlign: 'center',
+              background: '#fff',
+              border: '1.5px solid var(--gray-200)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+              textAlign: 'center',
               borderTop: `3px solid ${s.color}`,
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
-            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{s.label}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: s.color, lineHeight: 1.1 }}>{s.value}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, marginTop: 4 }}>
+              {s.label}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+      {/* Filter and Search Bar */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 200 }}>
+          <Search
+            size={16}
+            color="var(--gray-400)"
+            style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
+          />
           <input
-            placeholder="Search by ticket, description, name…"
+            placeholder="Search ticket, name, location…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '9px 12px 9px 34px', borderRadius: 8,
-              border: '1.5px solid #d1d5db', fontSize: 14, outline: 'none',
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              borderRadius: 'var(--radius-md)',
+              border: '1.5px solid var(--gray-200)',
+              fontSize: '0.88rem',
+              outline: 'none',
+              background: '#fff',
+              boxSizing: 'border-box',
             }}
           />
         </div>
+
+        {/* Filter Pills */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              style={{
-                padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                border: '1.5px solid',
-                borderColor: statusFilter === f.value ? '#6366f1' : '#d1d5db',
-                background: statusFilter === f.value ? '#eef2ff' : '#fff',
-                color: statusFilter === f.value ? '#6366f1' : '#374151',
-                cursor: 'pointer',
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          {STATUS_FILTERS.map((f) => {
+            const isActive = statusFilter === f.value;
+            return (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  border: '1.5px solid',
+                  borderColor: isActive ? 'var(--indigo-600)' : 'var(--gray-200)',
+                  background: isActive ? 'var(--indigo-50)' : '#fff',
+                  color: isActive ? 'var(--indigo-700)' : 'var(--gray-600)',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)',
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* List */}
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {loading && <p style={{ color: '#9ca3af', textAlign: 'center', padding: 40 }}>Loading…</p>}
+      {/* Complaint List & Responsive Detail Pane */}
+      <div className="complaint-table-container" style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {loading && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-400)' }}>
+              <p>Loading complaints...</p>
+            </div>
+          )}
           {!loading && filtered.length === 0 && (
-            <p style={{ color: '#9ca3af', textAlign: 'center', padding: 40 }}>No complaints found.</p>
+            <div
+              style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                background: '#fff',
+                borderRadius: 'var(--radius-md)',
+                border: '1.5px dashed var(--gray-200)',
+              }}
+            >
+              <p style={{ fontSize: 32, margin: '0 0 8px' }}>📂</p>
+              <p style={{ color: 'var(--gray-600)', fontWeight: 600, margin: 0 }}>No matching complaints found</p>
+              <p style={{ color: 'var(--gray-400)', fontSize: '0.8rem', marginTop: 4 }}>
+                Try adjusting your search query or status filter
+              </p>
+            </div>
           )}
           {filtered.map((c) => (
-            <ComplaintCard
-              key={c.id}
-              complaint={c}
-              compact
-              onClick={() => setSelected(c)}
-            />
+            <ComplaintCard key={c.id} complaint={c} compact onClick={() => setSelected(c)} />
           ))}
         </div>
 
-        {/* Side panel */}
+        {/* Side Panel / Mobile Modal for Resolution Form */}
         {selected && (
-          <div style={{
-            width: 380, flexShrink: 0,
-            background: '#fff', border: '1.5px solid #e5e7eb',
-            borderRadius: 12, padding: '16px 20px',
-            position: 'sticky', top: 80, maxHeight: 'calc(100vh - 120px)',
-            overflowY: 'auto',
-          }}>
+          <div className="complaint-detail-pane">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Complaint Detail</h3>
-              <button onClick={() => setSelected(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-                <X size={18} color="#6b7280" />
+              <div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--gray-400)',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Resolution Panel
+                </span>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>#{selected.ticket_number}</h3>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                style={{
+                  border: 'none',
+                  background: 'var(--gray-100)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={18} color="var(--gray-600)" />
               </button>
             </div>
 
@@ -138,13 +212,29 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
               <img
                 src={selected.photo_url}
                 alt="Complaint"
-                style={{ width: '100%', borderRadius: 8, marginBottom: 12, objectFit: 'cover', maxHeight: 200 }}
+                style={{
+                  width: '100%',
+                  borderRadius: 'var(--radius-sm)',
+                  marginBottom: 12,
+                  objectFit: 'cover',
+                  maxHeight: 220,
+                }}
               />
             )}
 
-            <p style={{ fontSize: 14, color: '#374151', margin: '0 0 8px' }}>{selected.description}</p>
-            {selected.address && <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 12px' }}>📍 {selected.address}</p>}
-            {selected.citizen_name && <p style={{ fontSize: 13, color: '#374151' }}>👤 {selected.citizen_name} {selected.citizen_phone && `· ${selected.citizen_phone}`}</p>}
+            <p style={{ fontSize: '0.9rem', color: 'var(--gray-800)', margin: '0 0 8px', lineHeight: 1.5 }}>
+              {selected.description}
+            </p>
+            {selected.address && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', margin: '0 0 10px' }}>
+                📍 {selected.address}
+              </p>
+            )}
+            {selected.citizen_name && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--gray-700)', margin: '0 0 14px' }}>
+                👤 {selected.citizen_name} {selected.citizen_phone && `· ${selected.citizen_phone}`}
+              </p>
+            )}
 
             <ResolutionForm
               complaint={selected}
@@ -156,6 +246,41 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
           </div>
         )}
       </div>
+
+      <style>{`
+        .complaint-detail-pane {
+          width: 380px;
+          flex-shrink: 0;
+          background: #fff;
+          border: 1.5px solid var(--gray-200);
+          border-radius: var(--radius-md);
+          padding: 18px 20px;
+          position: sticky;
+          top: 80px;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+          box-shadow: var(--shadow-md);
+        }
+
+        @media (max-width: 900px) {
+          .complaint-table-container {
+            flex-direction: column !important;
+          }
+          .complaint-detail-pane {
+            position: fixed !important;
+            top: auto !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-height: 80vh !important;
+            z-index: 1000 !important;
+            border-radius: 20px 20px 0 0 !important;
+            border-bottom: none !important;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.25) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

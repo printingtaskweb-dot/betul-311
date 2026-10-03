@@ -66,21 +66,39 @@ export const ServicesGrid: React.FC = () => {
   const { language } = useAuth();
 
   return (
-    <div style={{ padding: '0 16px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--gray-900)' }}>
-          {t(language, 'ourServices')}
-        </h2>
-        <Link to="/complaint/new" style={{ fontSize: 13, color: 'var(--green-600)', fontWeight: 600 }}>
+    <div className="app-container" style={{ paddingTop: 20, paddingBottom: 24 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--gray-900)', margin: 0 }}>
+            {t(language, 'ourServices')}
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+            {language === 'hi' ? 'सभी नगर निगम विभाग' : 'Indore & Betul Municipal Services'}
+          </p>
+        </div>
+        <Link
+          to="/complaint/new"
+          style={{
+            fontSize: '0.85rem',
+            color: 'var(--green-600)',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
           {t(language, 'viewAll')} →
         </Link>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 10,
-      }}>
+      <div className="services-grid-responsive">
         {SERVICES.map((svc) => {
           const label = t(language, svc.slug as any) || svc.slug;
           return (
@@ -88,26 +106,43 @@ export const ServicesGrid: React.FC = () => {
               <div
                 className="card-hover"
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 8, padding: '14px 6px',
-                  borderRadius: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: 'clamp(10px, 1.5vw, 16px) 6px',
+                  borderRadius: 'var(--radius-md)',
                   background: '#fff',
-                  border: '1.5px solid var(--gray-100)',
+                  border: '1.5px solid var(--gray-200)',
                   textAlign: 'center',
                   cursor: 'pointer',
+                  height: '100%',
                 }}
               >
-                {/* Icon circle */}
-                <div style={{
-                  width: 48, height: 48, borderRadius: '50%',
-                  background: svc.gradient,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22,
-                  boxShadow: `0 6px 16px ${svc.shadow}`,
-                }}>
+                <div
+                  style={{
+                    width: 'clamp(42px, 4vw, 52px)',
+                    height: 'clamp(42px, 4vw, 52px)',
+                    borderRadius: '50%',
+                    background: svc.gradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 'clamp(20px, 2vw, 24px)',
+                    boxShadow: `0 6px 16px ${svc.shadow}`,
+                    flexShrink: 0,
+                  }}
+                >
                   {svc.icon}
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-700)', lineHeight: 1.2 }}>
+                <span
+                  style={{
+                    fontSize: 'clamp(0.72rem, 0.7rem + 0.1vw, 0.82rem)',
+                    fontWeight: 700,
+                    color: 'var(--gray-800)',
+                    lineHeight: 1.25,
+                  }}
+                >
                   {label}
                 </span>
               </div>

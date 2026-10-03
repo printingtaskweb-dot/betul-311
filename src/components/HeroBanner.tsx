@@ -16,10 +16,10 @@ interface BannerSlide {
 const SLIDES: BannerSlide[] = [
   {
     id: 1,
-    tag: '🏆 #1 Cleanest City',
-    title: 'Indore – Swachh Survekshan 2024',
-    subtitle: 'Help us stay the cleanest! Report civic issues instantly with photo & location.',
-    cta: 'Report Now',
+    tag: '🏆 #1 Cleanest City Model',
+    title: 'Clean Indore & Betul Mission',
+    subtitle: 'Report civic issues instantly with photo & auto GPS location. Track until resolved and verified.',
+    cta: 'Report Civic Issue',
     ctaLink: '/complaint/new',
     emoji: '🌿',
     gradient: 'linear-gradient(135deg, #14532d 0%, #166534 45%, #16a34a 100%)',
@@ -28,8 +28,8 @@ const SLIDES: BannerSlide[] = [
   {
     id: 2,
     tag: '💧 Water Conservation',
-    title: 'Report Water Leakages',
-    subtitle: 'Save thousands of litres every day. Spot a leaking pipe? Report it in 30 seconds.',
+    title: 'Report Water Leakage & Supply',
+    subtitle: 'Save precious water every day. Spot a broken pipe or shortage? Route to department in 30 seconds.',
     cta: 'Report Water Issue',
     ctaLink: '/complaint/new?dept=water',
     emoji: '💧',
@@ -38,9 +38,9 @@ const SLIDES: BannerSlide[] = [
   },
   {
     id: 3,
-    tag: '🌧️ Monsoon Ready',
-    title: 'Drainage & Flooding Issues',
-    subtitle: 'Pre-monsoon drain cleaning is underway. Report blocked drains before rains arrive.',
+    tag: '🌧️ Monsoon Preparedness',
+    title: 'Rain Water & Flood Drainage',
+    subtitle: 'Choked storm drains or road waterlogging? Municipal teams ready for immediate dispatch.',
     cta: 'Report Drainage',
     ctaLink: '/complaint/new?dept=rainwater',
     emoji: '🌧️',
@@ -49,9 +49,9 @@ const SLIDES: BannerSlide[] = [
   },
   {
     id: 4,
-    tag: '🌿 Green Indore',
+    tag: '🌿 Green Waste Initiative',
     title: 'Biodegradable Waste Pickup',
-    subtitle: 'Garden waste, fallen leaves, tree branches — we\'ll pick it up. Just click & report.',
+    subtitle: 'Garden trimmings, fallen branches, and leaves — specialized pickup fleet dispatched to your location.',
     cta: 'Report Green Waste',
     ctaLink: '/department/green',
     emoji: '🌱',
@@ -60,9 +60,9 @@ const SLIDES: BannerSlide[] = [
   },
   {
     id: 5,
-    tag: '🏗️ C&D Waste Drive',
-    title: 'Construction Waste Free Indore',
-    subtitle: 'Illegal dumping of construction debris? Spot it, photograph it, report it instantly.',
+    tag: '🏗️ Debris Free City',
+    title: 'C&D Waste Clearance Drive',
+    subtitle: 'Construction and demolition waste clearance. Fast removal of roadside rubble and debris.',
     cta: 'Report C&D Waste',
     ctaLink: '/complaint/new?dept=cnd',
     emoji: '🏗️',
@@ -75,151 +75,226 @@ export const HeroBanner: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
 
-  const goTo = useCallback((idx: number) => {
-    if (animating) return;
-    setAnimating(true);
-    setTimeout(() => {
-      setCurrent(idx);
-      setAnimating(false);
-    }, 250);
-  }, [animating]);
+  const goTo = useCallback(
+    (idx: number) => {
+      if (animating) return;
+      setAnimating(true);
+      setTimeout(() => {
+        setCurrent(idx);
+        setAnimating(false);
+      }, 250);
+    },
+    [animating]
+  );
 
   const next = useCallback(() => goTo((current + 1) % SLIDES.length), [current, goTo]);
   const prev = useCallback(() => goTo((current - 1 + SLIDES.length) % SLIDES.length), [current, goTo]);
 
   useEffect(() => {
-    const id = setInterval(next, 4500);
+    const id = setInterval(next, 5000);
     return () => clearInterval(id);
   }, [next]);
 
   const slide = SLIDES[current];
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 0 }}>
-      {/* Main slide */}
+    <div style={{ position: 'relative', overflow: 'hidden', width: '100%' }}>
       <div
         style={{
           background: slide.gradient,
-          padding: '36px 24px 48px',
+          padding: 'clamp(28px, 4vw, 56px) clamp(16px, 4vw, 32px)',
           transition: 'background 0.5s ease',
           position: 'relative',
-          minHeight: 280,
+          minHeight: 'clamp(260px, 30vw, 360px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
         }}
       >
-        {/* Background decorations */}
-        <div style={{
-          position: 'absolute', right: -30, top: -30,
-          fontSize: 140, opacity: 0.12, lineHeight: 1,
-          userSelect: 'none', pointerEvents: 'none',
-        }}>
-          {slide.emoji}
-        </div>
-        <div style={{
-          position: 'absolute', bottom: 10, left: -10,
-          width: 150, height: 150, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.05)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Content */}
+        {/* Background decorative emoji */}
         <div
           style={{
-            opacity: animating ? 0 : 1,
-            transform: animating ? 'translateY(8px)' : 'translateY(0)',
-            transition: 'opacity 0.3s ease, transform 0.3s ease',
-            maxWidth: 520,
+            position: 'absolute',
+            right: 'clamp(-10px, 4vw, 40px)',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: 'clamp(100px, 16vw, 220px)',
+            opacity: 0.12,
+            lineHeight: 1,
+            userSelect: 'none',
+            pointerEvents: 'none',
           }}
         >
-          {/* Tag */}
-          <div style={{
-            display: 'inline-block',
-            padding: '4px 12px',
-            background: 'rgba(255,255,255,0.18)',
-            border: `1px solid rgba(255,255,255,0.3)`,
-            borderRadius: 20,
-            fontSize: 12, fontWeight: 600,
-            color: '#fff', marginBottom: 14,
-            letterSpacing: 0.3,
-          }}>
+          {slide.emoji}
+        </div>
+
+        {/* Content container */}
+        <div
+          className="app-container"
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            opacity: animating ? 0 : 1,
+            transform: animating ? 'translateY(8px)' : 'translateY(0)',
+            transition: 'opacity 0.25s ease, transform 0.25s ease',
+            maxWidth: 800,
+            marginLeft: 0,
+            paddingLeft: 0,
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 14px',
+              background: 'rgba(255,255,255,0.18)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'clamp(0.72rem, 0.7rem + 0.2vw, 0.82rem)',
+              fontWeight: 700,
+              color: '#fff',
+              marginBottom: 12,
+              letterSpacing: '0.02em',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
             {slide.tag}
           </div>
 
-          <h1 style={{
-            color: '#fff', fontSize: 24, fontWeight: 800,
-            marginBottom: 10, lineHeight: 1.2,
-            textShadow: '0 2px 12px rgba(0,0,0,0.25)',
-          }}>
+          <h1
+            style={{
+              color: '#fff',
+              fontSize: 'clamp(1.4rem, 1.2rem + 1.5vw, 2.4rem)',
+              fontWeight: 900,
+              marginBottom: 10,
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              textShadow: '0 2px 16px rgba(0,0,0,0.25)',
+              maxWidth: 620,
+            }}
+          >
             {slide.title}
           </h1>
 
-          <p style={{
-            color: 'rgba(255,255,255,0.85)', fontSize: 14,
-            marginBottom: 22, lineHeight: 1.6, maxWidth: 400,
-          }}>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.9)',
+              fontSize: 'clamp(0.85rem, 0.8rem + 0.3vw, 1.05rem)',
+              marginBottom: 20,
+              lineHeight: 1.6,
+              maxWidth: 540,
+            }}
+          >
             {slide.subtitle}
           </p>
 
-          <a
-            href={slide.ctaLink}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '11px 22px', borderRadius: 10,
-              background: '#fff',
-              color: '#166534',
-              fontWeight: 700, fontSize: 14,
-              textDecoration: 'none',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.04)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            {slide.cta} →
-          </a>
+          <div>
+            <a
+              href={slide.ctaLink}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: 'clamp(10px, 1.5vw, 14px) clamp(20px, 2vw, 28px)',
+                borderRadius: 'var(--radius-md)',
+                background: '#fff',
+                color: 'var(--green-800)',
+                fontWeight: 800,
+                fontSize: 'clamp(0.85rem, 0.8rem + 0.2vw, 0.95rem)',
+                textDecoration: 'none',
+                boxShadow: 'var(--shadow-lg)',
+                transition: 'var(--transition)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              }}
+            >
+              {slide.cta} →
+            </a>
+          </div>
         </div>
 
-        {/* Nav arrows */}
+        {/* Carousel controls */}
         <button
           onClick={prev}
+          aria-label="Previous slide"
           style={{
-            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.25)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10,
+            transition: 'var(--transition)',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
         >
-          <ChevronLeft size={18} color="#fff" />
+          <ChevronLeft size={20} color="#fff" />
         </button>
         <button
           onClick={next}
+          aria-label="Next slide"
           style={{
-            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute',
+            right: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.25)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10,
+            transition: 'var(--transition)',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
         >
-          <ChevronRight size={18} color="#fff" />
+          <ChevronRight size={20} color="#fff" />
         </button>
       </div>
 
-      {/* Dots */}
-      <div style={{
-        display: 'flex', gap: 6, justifyContent: 'center',
-        padding: '10px 0',
-        background: slide.gradient,
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-      }}>
+      {/* Progress Dots */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          justifyContent: 'center',
+          padding: '10px 0',
+          background: slide.gradient,
+        }}
+      >
         {SLIDES.map((_, i) => (
           <button
             key={i}
             onClick={() => goTo(i)}
+            aria-label={`Go to slide ${i + 1}`}
             style={{
-              width: i === current ? 24 : 8, height: 8,
-              borderRadius: 4, border: 'none', cursor: 'pointer',
-              background: i === current ? '#fff' : 'rgba(255,255,255,0.4)',
+              width: i === current ? 24 : 8,
+              height: 7,
+              borderRadius: 4,
+              border: 'none',
+              cursor: 'pointer',
+              background: i === current ? '#fff' : 'rgba(255,255,255,0.35)',
               transition: 'all 0.3s ease',
               padding: 0,
             }}
