@@ -1,17 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
+import { StaffApprovalTable } from '../../components/admin/StaffApprovalTable';
+import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
-import { LogOut, LayoutDashboard, Menu, X, ArrowLeft } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
   const { departments, loading } = useDepartments();
+  const [activeTab, setActiveTab] = useState<'complaints' | 'staff'>('complaints');
   const [activeDept, setActiveDept] = useState<Department | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingStaffCount, setPendingStaffCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'pending_staff');
+        if (count !== null) setPendingStaffCount(count);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchPendingCount();
+  }, [activeTab]);
 
   // Auth guard: allow if authenticated as admin (e.g. ouikey41@gmail.com or is_admin) OR passcode session
   const hasPasscodeSession = sessionStorage.getItem('imc_admin') === '1';
@@ -131,8 +150,10 @@ export const AdminDashboard: React.FC = () => {
           }}
           className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}
         >
+          {/* View: All Complaints */}
           <button
             onClick={() => {
+              setActiveTab('complaints');
               setActiveDept(null);
               setMobileMenuOpen(false);
             }}
@@ -143,10 +164,10 @@ export const AdminDashboard: React.FC = () => {
               borderRadius: 'var(--radius-sm)',
               border: 'none',
               cursor: 'pointer',
-              marginBottom: 8,
-              background: activeDept === null ? 'var(--indigo-50)' : 'transparent',
-              color: activeDept === null ? 'var(--indigo-700)' : 'var(--gray-700)',
-              fontWeight: activeDept === null ? 800 : 600,
+              marginBottom: 4,
+              background: activeTab === 'complaints' && activeDept === null ? 'var(--indigo-50)' : 'transparent',
+              color: activeTab === 'complaints' && activeDept === null ? 'var(--indigo-700)' : 'var(--gray-700)',
+              fontWeight: activeTab === 'complaints' && activeDept === null ? 800 : 600,
               fontSize: '0.88rem',
               display: 'flex',
               alignItems: 'center',
@@ -157,9 +178,54 @@ export const AdminDashboard: React.FC = () => {
             <span>🗂️</span> All Complaints
           </button>
 
+          {/* View: Staff Approvals */}
+          <button
+            onClick={() => {
+              setActiveTab('staff');
+              setActiveDept(null);
+              setMobileMenuOpen(false);
+            }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              cursor: 'pointer',
+              marginBottom: 12,
+              background: activeTab === 'staff' ? '#f0fdf4' : 'transparent',
+              color: activeTab === 'staff' ? '#15803d' : 'var(--gray-700)',
+              fontWeight: activeTab === 'staff' ? 800 : 600,
+              fontSize: '0.88rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'var(--transition)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Users size={16} color={activeTab === 'staff' ? '#16a34a' : 'var(--gray-500)'} />
+              <span>Staff Approvals</span>
+            </div>
+            {pendingStaffCount > 0 && (
+              <span
+                style={{
+                  background: '#d97706',
+                  color: '#fff',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: 12,
+                }}
+              >
+                {pendingStaffCount}
+              </span>
+            )}
+          </button>
+
           <div
             style={{
-              margin: '12px 0 6px',
+              margin: '6px 0 6px',
               fontSize: '0.72rem',
               fontWeight: 800,
               color: 'var(--gray-400)',
@@ -168,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
               letterSpacing: '0.05em',
             }}
           >
-            Departments
+            Filter by Department
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
@@ -178,11 +244,12 @@ export const AdminDashboard: React.FC = () => {
               ))
             ) : (
               departments.map((dept) => {
-                const isActive = activeDept?.id === dept.id;
+                const isActive = activeTab === 'complaints' && activeDept?.id === dept.id;
                 return (
                   <button
                     key={dept.id}
                     onClick={() => {
+                      setActiveTab('complaints');
                       setActiveDept(dept);
                       setMobileMenuOpen(false);
                     }}
@@ -230,21 +297,55 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Main Content Area */}
         <main style={{ flex: 1, padding: 'clamp(14px, 2.5vw, 24px)', overflowX: 'hidden', minWidth: 0 }}>
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '1.6rem' }}>{activeDept ? activeDept.icon : '🗂️'}</span>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
-                  {activeDept ? `${activeDept.name} Department` : 'All Municipal Complaints'}
-                </h2>
-                <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>
-                  {activeDept ? activeDept.description : 'Real-time feed across all civic categories'}
-                </p>
+          {activeTab === 'staff' ? (
+            <div>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      background: '#dcfce7',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Users size={22} color="#15803d" />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
+                      Department Staff Registrations
+                    </h2>
+                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>
+                      Review and approve officers and field workers registered for municipal departments
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <ComplaintTable departmentSlug={activeDept?.slug} />
+              <StaffApprovalTable />
+            </div>
+          ) : (
+            <div>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '1.6rem' }}>{activeDept ? activeDept.icon : '🗂️'}</span>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
+                      {activeDept ? `${activeDept.name} Department` : 'All Municipal Complaints'}
+                    </h2>
+                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>
+                      {activeDept ? activeDept.description : 'Real-time feed across all civic categories'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <ComplaintTable departmentSlug={activeDept?.slug} />
+            </div>
+          )}
         </main>
       </div>
 

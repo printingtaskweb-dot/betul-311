@@ -7,7 +7,7 @@ import { StatsSection } from '../components/StatsSection';
 import { ServicesGrid } from '../components/ServicesGrid';
 import { RecentComplaints } from '../components/RecentComplaints';
 import { BottomNav } from '../components/BottomNav';
-import { Globe, LogOut, ShieldAlert } from 'lucide-react';
+import { Globe, LogOut, ShieldAlert, Building2 } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const { language, setLanguage, user, profile, isAdmin, signOut } = useAuth();
@@ -96,6 +96,21 @@ export const Home: React.FC = () => {
               style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--gray-700)', transition: 'var(--transition)' }}
             >
               {t(language, 'trackComplaint')}
+            </Link>
+            <Link
+              to="/dept/login"
+              style={{
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                color: '#15803d',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                transition: 'var(--transition)',
+              }}
+            >
+              <Building2 size={15} />
+              {language === 'hi' ? 'विभाग पोर्टल' : 'Dept Portal'}
             </Link>
             {isAdmin && (
               <Link
@@ -459,6 +474,89 @@ export const Home: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* ── Municipal Portal Quick Links / Footer ── */}
+      <footer className="app-container" style={{ marginTop: 24, marginBottom: 20 }}>
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px clamp(16px, 3vw, 28px)',
+            border: '1.5px solid var(--gray-200)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            gap: 20,
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: '1.4rem' }}>🏛️</span>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--gray-900)' }}>
+                Indore & Betul Municipal 311
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-500)', maxWidth: 360, lineHeight: 1.5 }}>
+              {language === 'hi'
+                ? 'नागरिक शिकायत समाधान और नगर निगम विभागीय प्रबंधन पोर्टल। त्वरित निराकरण हेतु 24x7 सेवा।'
+                : 'Digital Civic Grievance Redressal and Department Management Portal. Connecting citizens directly with municipal field teams.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: '0.78rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {language === 'hi' ? 'विभागीय पोर्टल' : 'Department Portals'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Link
+                  to="/dept/login"
+                  style={{
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    color: '#15803d',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Building2 size={14} />
+                  {language === 'hi' ? 'विभाग स्टाफ लॉगिन / पंजीकरण' : 'Department Staff Login & Register'}
+                </Link>
+                <Link
+                  to="/admin"
+                  style={{
+                    fontSize: '0.82rem',
+                    color: 'var(--gray-600)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {language === 'hi' ? 'नगर निगम एडमिन कंसोल' : 'Municipal Admin Console'}
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: '0.78rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {language === 'hi' ? 'नागरिक सेवाएं' : 'Citizen Quick Links'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Link to="/complaint/new" style={{ fontSize: '0.82rem', color: 'var(--gray-600)', textDecoration: 'none' }}>
+                  {t(language, 'reportIssue')}
+                </Link>
+                <Link to="/track" style={{ fontSize: '0.82rem', color: 'var(--gray-600)', textDecoration: 'none' }}>
+                  {t(language, 'trackComplaint')}
+                </Link>
+                <Link to="/department/green" style={{ fontSize: '0.82rem', color: 'var(--gray-600)', textDecoration: 'none' }}>
+                  🌿 {language === 'hi' ? 'हरित अपशिष्ट संग्रहण' : 'Green Waste Pickup'}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* Bottom Navigation for mobile/tablet */}
       <BottomNav />

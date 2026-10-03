@@ -4,11 +4,26 @@
 -- https://supabase.com/dashboard/project/ywwkivrdjyaoovfsxnzp/sql
 -- =========================================================================
 
--- 1. Add dept_user_id to user_profiles so we can link a dept staff user
+-- 1. Add dept_user_id and email to user_profiles so we can link a dept staff user
 --    to a specific department (nullable for regular citizens)
 ALTER TABLE user_profiles
+ADD COLUMN IF NOT EXISTS email text,
 ADD COLUMN IF NOT EXISTS linked_department_id uuid REFERENCES departments(id) ON DELETE SET NULL,
-ADD COLUMN IF NOT EXISTS role text DEFAULT 'citizen' CHECK (role IN ('citizen','dept_staff','admin'));
+ADD COLUMN IF NOT EXISTS role text DEFAULT 'citizen';
+
+-- Ensure role check allows pending_staff, dept_staff, admin, rejected_staff
+ALTER TABLE user_profiles DROP CONSTRAINT IF EXISTS user_profiles_role_check;
+ALTER TABLE user_profiles ADD CONSTRAINT user_profiles_role_check 
+CHECK (role IN ('citizen','pending_staff','dept_staff','admin','rejected_staff'));
+
+-- Allow reading and updating user_profiles for administrative approval
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins and users can read user_profiles" ON user_profiles;
+CREATE POLICY "Admins and users can read user_profiles" ON user_profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own profile" ON user_profiles;
+CREATE POLICY "Users can insert own profile" ON user_profiles FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Admins and users can update user_profiles" ON user_profiles;
+CREATE POLICY "Admins and users can update user_profiles" ON user_profiles FOR UPDATE USING (true);
 
 -- 2. Create a helper view for department-filtered complaints
 --    so dept staff can see only their department's complaints
