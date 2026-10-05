@@ -21,9 +21,9 @@ const SLIDES: BannerSlide[] = [
     subtitle: 'Report civic issues instantly with photo & auto GPS location. Track until resolved and verified.',
     cta: 'Report Civic Issue',
     ctaLink: '/complaint/new',
-    emoji: '🌿',
-    gradient: 'linear-gradient(135deg, #14532d 0%, #166534 45%, #16a34a 100%)',
-    accentColor: '#4ade80',
+    emoji: '🏛️',
+    gradient: 'linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%)',
+    accentColor: '#f4c2d7',
   },
   {
     id: 2,
@@ -33,8 +33,8 @@ const SLIDES: BannerSlide[] = [
     cta: 'Report Water Issue',
     ctaLink: '/complaint/new?dept=water',
     emoji: '💧',
-    gradient: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #2563eb 100%)',
-    accentColor: '#60a5fa',
+    gradient: 'linear-gradient(135deg, #3b001d 0%, #520029 50%, #660033 100%)',
+    accentColor: '#e383ac',
   },
   {
     id: 3,
@@ -44,8 +44,8 @@ const SLIDES: BannerSlide[] = [
     cta: 'Report Drainage',
     ctaLink: '/complaint/new?dept=rainwater',
     emoji: '🌧️',
-    gradient: 'linear-gradient(135deg, #312e81 0%, #4338ca 50%, #6366f1 100%)',
-    accentColor: '#a5b4fc',
+    gradient: 'linear-gradient(135deg, #400020 0%, #660033 50%, #7a003d 100%)',
+    accentColor: '#fae1eb',
   },
   {
     id: 4,
@@ -55,8 +55,8 @@ const SLIDES: BannerSlide[] = [
     cta: 'Report Green Waste',
     ctaLink: '/department/green',
     emoji: '🌱',
-    gradient: 'linear-gradient(135deg, #064e3b 0%, #065f46 45%, #059669 100%)',
-    accentColor: '#6ee7b7',
+    gradient: 'linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%)',
+    accentColor: '#f4c2d7',
   },
   {
     id: 5,
@@ -66,8 +66,8 @@ const SLIDES: BannerSlide[] = [
     cta: 'Report C&D Waste',
     ctaLink: '/complaint/new?dept=cnd',
     emoji: '🏗️',
-    gradient: 'linear-gradient(135deg, #78350f 0%, #92400e 45%, #b45309 100%)',
-    accentColor: '#fcd34d',
+    gradient: 'linear-gradient(135deg, #3b001d 0%, #520029 50%, #660033 100%)',
+    accentColor: '#e383ac',
   },
 ];
 

@@ -35,13 +35,14 @@ export const AdminLogin: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #4338ca 100%)',
+        background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
         padding: 20,
       }}
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--theme-component, #d9d9d9)',
+          border: '1.5px solid var(--theme-component-border, #bfbfbf)',
           borderRadius: 'var(--radius-xl)',
           padding: 'clamp(28px, 4vw, 40px) clamp(20px, 3vw, 36px)',
           width: '100%',
@@ -143,7 +144,7 @@ export const AdminLogin: React.FC = () => {
               padding: '13px 0',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
-              background: 'linear-gradient(135deg, #312e81, #4f46e5)',
+              background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
               color: '#fff',
               fontWeight: 800,
               fontSize: '0.95rem',

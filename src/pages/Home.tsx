@@ -87,7 +87,7 @@ export const Home: React.FC = () => {
             </Link>
             <Link
               to="/department/green"
-              style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--green-700)', transition: 'var(--transition)' }}
+              style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--theme-primary, #660033)', transition: 'var(--transition)' }}
             >
               🌿 {language === 'hi' ? 'हरित कचरा' : 'Green Waste'}
             </Link>
@@ -102,7 +102,7 @@ export const Home: React.FC = () => {
               style={{
                 fontSize: '0.88rem',
                 fontWeight: 600,
-                color: '#15803d',
+                color: 'var(--theme-primary, #660033)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
@@ -118,11 +118,11 @@ export const Home: React.FC = () => {
                 style={{
                   fontSize: '0.85rem',
                   fontWeight: 700,
-                  color: 'var(--indigo-700)',
-                  background: 'var(--indigo-50)',
+                  color: 'var(--theme-primary, #660033)',
+                  background: 'var(--theme-component, #d9d9d9)',
                   padding: '6px 14px',
                   borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--indigo-500)',
+                  border: '1px solid var(--theme-component-border, #bfbfbf)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -145,9 +145,9 @@ export const Home: React.FC = () => {
                 gap: 5,
                 padding: '6px 12px',
                 borderRadius: 'var(--radius-full)',
-                border: '1.5px solid var(--green-200)',
-                background: 'var(--green-50)',
-                color: 'var(--green-800)',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                background: 'var(--theme-component, #d9d9d9)',
+                color: 'var(--theme-primary, #660033)',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -169,12 +169,12 @@ export const Home: React.FC = () => {
                   gap: 6,
                   padding: '6px 12px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'linear-gradient(135deg, #312e81, #4f46e5)',
+                  background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                   color: '#fff',
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(79,70,229,0.3)',
+                  boxShadow: '0 2px 8px rgba(102,0,51,0.3)',
                 }}
                 className="admin-badge-pulse"
                 title="Municipal Admin Panel"
@@ -192,7 +192,7 @@ export const Home: React.FC = () => {
                     width: 34,
                     height: 34,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #15803d, #22c55e)',
+                    background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -228,7 +228,7 @@ export const Home: React.FC = () => {
                 style={{
                   padding: '7px 16px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                  background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                   color: '#fff',
                   fontSize: '0.8rem',
                   fontWeight: 700,
@@ -253,7 +253,7 @@ export const Home: React.FC = () => {
             <div
               className="card-hover"
               style={{
-                background: 'linear-gradient(135deg, #15803d 0%, #16a34a 60%, #22c55e 100%)',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 borderRadius: 'var(--radius-lg)',
                 padding: 'clamp(16px, 2.5vw, 24px)',
                 display: 'flex',
@@ -308,7 +308,7 @@ export const Home: React.FC = () => {
                   width: 52,
                   height: 52,
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--green-50)',
+                  background: 'var(--theme-bg, #fff4e7)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -340,12 +340,12 @@ export const Home: React.FC = () => {
           <div
             className="card-hover"
             style={{
-              background: 'linear-gradient(135deg, #064e3b 0%, #166534 40%, #16a34a 100%)',
+              background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
               borderRadius: 'var(--radius-lg)',
               padding: 'clamp(20px, 3vw, 32px)',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 8px 30px rgba(22,163,74,0.25)',
+              boxShadow: '0 8px 30px rgba(102,0,51,0.25)',
             }}
           >
             <div

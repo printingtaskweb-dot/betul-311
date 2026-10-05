@@ -171,7 +171,7 @@ export const GreenDepartmentPage: React.FC = () => {
       {/* Header */}
       <header
         style={{
-          background: 'linear-gradient(135deg, #064e3b 0%, #14532d 40%, #16a34a 100%)',
+          background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
           padding: '16px 20px 24px',
           color: '#fff',
           boxShadow: 'var(--shadow-sm)',
@@ -240,18 +240,18 @@ export const GreenDepartmentPage: React.FC = () => {
           <form
             onSubmit={handleSubmit}
             style={{
-              background: '#fff',
+              background: 'var(--theme-component, #d9d9d9)',
               borderRadius: 'var(--radius-lg)',
               padding: 'clamp(16px, 3vw, 28px)',
-              border: '1.5px solid var(--gray-200)',
+              border: '1.5px solid var(--theme-component-border, #bfbfbf)',
               boxShadow: 'var(--shadow-sm)',
             }}
           >
             {/* Helpful Tip Callout */}
             <div
               style={{
-                background: 'var(--green-50)',
-                border: '1.5px solid var(--green-200)',
+                background: 'var(--theme-bg, #fff4e7)',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)',
                 borderRadius: 'var(--radius-md)',
                 padding: '12px 14px',
                 display: 'flex',
@@ -436,12 +436,12 @@ export const GreenDepartmentPage: React.FC = () => {
                 background:
                   submitting || uploading
                     ? 'var(--gray-300)'
-                    : 'linear-gradient(135deg, #064e3b, #16a34a)',
+                    : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 color: '#fff',
                 fontWeight: 800,
                 fontSize: '1rem',
                 cursor: submitting || uploading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 6px 20px rgba(22,163,74,0.3)',
+                boxShadow: '0 6px 20px rgba(102,0,51,0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -470,10 +470,10 @@ export const GreenDepartmentPage: React.FC = () => {
               style={{
                 textAlign: 'center',
                 padding: '48px 20px',
-                background: '#fff',
+                background: 'var(--theme-component, #d9d9d9)',
                 borderRadius: 'var(--radius-md)',
-                border: '1.5px dashed var(--gray-200)',
-                color: 'var(--gray-400)',
+                border: '1.5px dashed var(--theme-component-border, #bfbfbf)',
+                color: 'var(--gray-600)',
               }}
             >
               <p style={{ fontSize: 36, marginBottom: 8 }}>🌿</p>
@@ -509,9 +509,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '11px 14px',
   borderRadius: 'var(--radius-sm)',
-  border: '1.5px solid var(--gray-200)',
+  border: '1.5px solid var(--theme-component-border, #bfbfbf)',
   fontSize: '0.88rem',
   color: 'var(--gray-900)',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--theme-bg, #fff4e7)',
 };

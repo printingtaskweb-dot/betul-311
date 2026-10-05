@@ -65,7 +65,7 @@
   --indigo-500: #660033;
   --indigo-600: #4d0026;
   --indigo-700: #3b001d;
-  --blue-500:   #3b82f6;
+  --blue-500:   var(--theme-primary);
   --blue-600:   #660033;
 
   /* Accent – Warm */
