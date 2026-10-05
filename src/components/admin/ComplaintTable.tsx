@@ -64,8 +64,8 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
             key={s.label}
             className="card-hover"
             style={{
-              background: '#fff',
-              border: '1.5px solid var(--gray-200)',
+              background: 'var(--theme-component, #d9d9d9)',
+              border: '1.5px solid var(--theme-component-border, #bfbfbf)',
               borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               textAlign: 'center',
@@ -74,7 +74,7 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
             }}
           >
             <div style={{ fontSize: '1.5rem', fontWeight: 900, color: s.color, lineHeight: 1.1 }}>{s.value}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, marginTop: 4 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--gray-600)', fontWeight: 600, marginTop: 4 }}>
               {s.label}
             </div>
           </div>
@@ -106,10 +106,10 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
               width: '100%',
               padding: '10px 12px 10px 38px',
               borderRadius: 'var(--radius-md)',
-              border: '1.5px solid var(--gray-200)',
+              border: '1.5px solid var(--theme-component-border, #bfbfbf)',
               fontSize: '0.88rem',
               outline: 'none',
-              background: '#fff',
+              background: 'var(--theme-bg, #fff4e7)',
               boxSizing: 'border-box',
             }}
           />
@@ -129,9 +129,9 @@ export const ComplaintTable: React.FC<ComplaintTableProps> = ({ departmentSlug }
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   border: '1.5px solid',
-                  borderColor: isActive ? 'var(--indigo-600)' : 'var(--gray-200)',
-                  background: isActive ? 'var(--indigo-50)' : '#fff',
-                  color: isActive ? 'var(--indigo-700)' : 'var(--gray-600)',
+                  borderColor: isActive ? 'var(--theme-primary, #660033)' : 'var(--theme-component-border, #bfbfbf)',
+                  background: isActive ? 'var(--theme-primary, #660033)' : 'var(--theme-component, #d9d9d9)',
+                  color: isActive ? '#fff' : 'var(--gray-700)',
                   cursor: 'pointer',
                   transition: 'var(--transition)',
                 }}

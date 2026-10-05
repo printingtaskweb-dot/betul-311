@@ -11,29 +11,62 @@
 }
 
 :root {
+  /* =========================================================================
+     🎨 CENTRAL THEME CUSTOMIZATION
+     Modify these 3 core variables to easily change colors across the entire app:
+     1. --theme-bg: Application Background (#fff4e7)
+     2. --theme-primary: Primary Brand, Headers, Highlights & Action Buttons (#660033)
+     3. --theme-component: Cards, Boxes, Panels & Component Backgrounds (#d9d9d9)
+     ========================================================================= */
+  --theme-bg: #fff4e7;
+  --theme-primary: #660033;
+  --theme-component: #d9d9d9;
+  --theme-component-border: #bfbfbf;
+  --theme-component-hover: #cecece;
+
+  /* Global Token Aliases */
+  --bg-page: var(--theme-bg);
+  --bg-card: var(--theme-component);
+  --bg-surface: var(--theme-component);
+  --color-primary: var(--theme-primary);
+  --color-component: var(--theme-component);
+  --color-border: var(--theme-component-border);
+
   /* Fonts */
   --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-hindi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
 
-  /* Primary Civic Green Palette */
-  --green-50:  #f0fdf4;
-  --green-100: #dcfce7;
-  --green-200: #bbf7d0;
-  --green-300: #86efac;
-  --green-400: #4ade80;
-  --green-500: #22c55e;
-  --green-600: #16a34a;
-  --green-700: #15803d;
-  --green-800: #166534;
-  --green-900: #14532d;
+  /* Primary Palette (Tonal variants derived from #660033) */
+  --primary-50:  #fff4e7;
+  --primary-100: #fae1eb;
+  --primary-200: #f4c2d7;
+  --primary-300: #e383ac;
+  --primary-400: #cc4580;
+  --primary-500: #99004d;
+  --primary-600: var(--theme-primary);
+  --primary-700: #4d0026;
+  --primary-800: #3b001d;
+  --primary-900: #290014;
+
+  /* Mapped Civic Palette (Aliases for existing green-* variables) */
+  --green-50:  var(--theme-bg);
+  --green-100: #fae1eb;
+  --green-200: #f4c2d7;
+  --green-300: #e383ac;
+  --green-400: #cc4580;
+  --green-500: #99004d;
+  --green-600: var(--theme-primary);
+  --green-700: #4d0026;
+  --green-800: #3b001d;
+  --green-900: #290014;
 
   /* Accent – Indigo / Blue */
-  --indigo-50:  #eef2ff;
-  --indigo-500: #6366f1;
-  --indigo-600: #4f46e5;
-  --indigo-700: #4338ca;
+  --indigo-50:  var(--theme-component);
+  --indigo-500: #660033;
+  --indigo-600: #4d0026;
+  --indigo-700: #3b001d;
   --blue-500:   #3b82f6;
-  --blue-600:   #2563eb;
+  --blue-600:   #660033;
 
   /* Accent – Warm */
   --amber-400: #fbbf24;
@@ -41,17 +74,21 @@
   --red-500:   #ef4444;
   --red-600:   #dc2626;
 
-  /* Neutrals */
-  --gray-50:  #f8fafc;
-  --gray-100: #f1f5f9;
-  --gray-200: #e2e8f0;
-  --gray-300: #cbd5e1;
-  --gray-400: #94a3b8;
-  --gray-500: #64748b;
-  --gray-600: #475569;
-  --gray-700: #334155;
-  --gray-800: #1e293b;
-  --gray-900: #0f172a;
+  /* Neutrals mapped to #fff4e7 and #d9d9d9 */
+  --gray-50:  var(--theme-bg);
+  --gray-100: var(--theme-component);
+  --gray-200: var(--theme-component-border);
+  --gray-300: #a8a8a8;
+  --gray-400: #757575;
+  --gray-500: #525252;
+  --gray-600: #383838;
+  --gray-700: #242424;
+  --gray-800: #141414;
+  --gray-900: #050505;
+
+  /* Gradients */
+  --primary-gradient: linear-gradient(135deg, #660033 0%, #800040 100%);
+  --header-gradient: linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%);
 
   /* Responsive Spacing Scale */
   --space-xs: clamp(4px, 1vw, 6px);
@@ -92,7 +129,7 @@ html {
 
 body {
   font-family: var(--font-primary);
-  background-color: var(--gray-50);
+  background-color: var(--theme-bg);
   color: var(--gray-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -136,9 +173,17 @@ button {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--gray-100); }
-::-webkit-scrollbar-thumb { background: var(--green-300); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--green-500); }
+::-webkit-scrollbar-track { background: var(--theme-bg); }
+::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-700); }
+
+/* Global Component & Card Defaults */
+.card-hover,
+.card-component,
+.app-card {
+  background-color: var(--theme-component);
+  border: 1.5px solid var(--theme-component-border);
+}
 
 /* Containers */
 .app-container {

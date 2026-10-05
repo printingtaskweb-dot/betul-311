@@ -74,12 +74,13 @@ function ResolveModal({ complaint, resolvedBy, language, onClose, onResolved, re
     }}>
       <div style={{
         width: '100%', maxWidth: 520,
-        background: '#fff', borderRadius: 'var(--radius-xl)',
+        background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-xl)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         overflow: 'hidden', maxHeight: '90vh', overflowY: 'auto',
+        border: '1.5px solid var(--theme-component-border, #bfbfbf)',
       }}>
         {/* Modal Header */}
-        <div style={{ background: 'linear-gradient(135deg, #15803d, #16a34a)', padding: '20px 24px' }}>
+        <div style={{ background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))', padding: '20px 24px' }}>
           <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 800 }}>
             ✅ {hi ? 'शिकायत हल करें' : 'Mark as Resolved'}
           </h2>
@@ -180,9 +181,9 @@ function ResolveModal({ complaint, resolvedBy, language, onClose, onResolved, re
               type="button"
               onClick={onClose}
               style={{
-                flex: 1, padding: '12px', border: '1.5px solid var(--gray-200)',
-                borderRadius: 'var(--radius-md)', background: '#fff',
-                color: 'var(--gray-600)', fontWeight: 700, cursor: 'pointer',
+                flex: 1, padding: '12px', border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                borderRadius: 'var(--radius-md)', background: 'var(--theme-bg, #fff4e7)',
+                color: 'var(--gray-800)', fontWeight: 700, cursor: 'pointer',
                 fontSize: '0.88rem',
               }}
             >
@@ -194,11 +195,11 @@ function ResolveModal({ complaint, resolvedBy, language, onClose, onResolved, re
               style={{
                 flex: 2, padding: '12px', border: 'none',
                 borderRadius: 'var(--radius-md)',
-                background: submitting ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                background: submitting ? 'var(--gray-300)' : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 color: '#fff', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
                 fontSize: '0.9rem', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: 7,
-                boxShadow: submitting ? 'none' : '0 4px 12px rgba(22,163,74,0.3)',
+                boxShadow: submitting ? 'none' : '0 4px 12px rgba(102,0,51,0.3)',
               }}
             >
               {submitting ? (
@@ -228,8 +229,8 @@ function ComplaintDetailCard({
 
   return (
     <div style={{
-      background: '#fff',
-      border: '1.5px solid var(--gray-200)',
+      background: 'var(--theme-component, #d9d9d9)',
+      border: '1.5px solid var(--theme-component-border, #bfbfbf)',
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
       boxShadow: 'var(--shadow-sm)',
@@ -342,13 +343,13 @@ function ComplaintDetailCard({
                   gap: 6,
                   padding: '7px 14px',
                   borderRadius: 'var(--radius-sm)',
-                  background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                  background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                   color: '#fff',
                   fontWeight: 800,
                   fontSize: '0.82rem',
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                  boxShadow: '0 2px 8px rgba(102,0,51,0.3)',
                 }}
               >
                 <Camera size={14} />
@@ -518,7 +519,7 @@ function ComplaintDetailCard({
                   padding: '11px 16px',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                  background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                   color: '#fff',
                   fontWeight: 800,
                   fontSize: '0.88rem',
@@ -527,7 +528,7 @@ function ComplaintDetailCard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 7,
-                  boxShadow: '0 3px 10px rgba(22,163,74,0.3)',
+                  boxShadow: '0 3px 10px rgba(102,0,51,0.3)',
                 }}
               >
                 <CheckCircle size={15} />
@@ -659,7 +660,7 @@ export default function DeptDashboard() {
 
       {/* ── Top Bar ────────────────────────────────────────────────────── */}
       <header style={{
-        background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 100%)',
+        background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
         padding: '0 clamp(16px, 4vw, 32px)',
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
@@ -720,11 +721,11 @@ export default function DeptDashboard() {
             const Icon = s.icon;
             return (
               <div key={s.label} style={{
-                background: '#fff', borderRadius: 'var(--radius-lg)', padding: '16px',
-                border: '1.5px solid var(--gray-200)', boxShadow: 'var(--shadow-sm)',
+                background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-lg)', padding: '16px',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)', boxShadow: 'var(--shadow-sm)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {s.label}
                   </span>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: s.bg,
@@ -742,8 +743,8 @@ export default function DeptDashboard() {
 
         {/* ── Search + Filter ─────────────────────────────────────────── */}
         <div style={{
-          background: '#fff', borderRadius: 'var(--radius-lg)', padding: '18px',
-          border: '1.5px solid var(--gray-200)', marginBottom: 20,
+          background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-lg)', padding: '18px',
+          border: '1.5px solid var(--theme-component-border, #bfbfbf)', marginBottom: 20,
           boxShadow: 'var(--shadow-sm)',
         }}>
           <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -772,7 +773,7 @@ export default function DeptDashboard() {
                 style={{
                   padding: '10px 12px 10px 32px',
                   border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-                  fontSize: '0.88rem', background: '#fff', outline: 'none', cursor: 'pointer',
+                  fontSize: '0.88rem', background: 'var(--theme-bg, #fff4e7)', outline: 'none', cursor: 'pointer',
                   fontFamily: 'var(--font-primary)',
                 }}
               >
@@ -788,7 +789,7 @@ export default function DeptDashboard() {
               type="submit"
               style={{
                 padding: '10px 18px', border: 'none', borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 color: '#fff', fontWeight: 700, fontSize: '0.88rem',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
               }}
@@ -799,9 +800,9 @@ export default function DeptDashboard() {
               type="button"
               onClick={() => { setSearch(''); setStatusFilter('all'); setTimeout(() => fetchComplaints(), 50); }}
               style={{
-                padding: '10px 14px', border: '1.5px solid var(--gray-200)',
-                borderRadius: 'var(--radius-md)', background: '#fff',
-                color: 'var(--gray-600)', fontWeight: 600, fontSize: '0.88rem',
+                padding: '10px 14px', border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                borderRadius: 'var(--radius-md)', background: 'var(--theme-bg, #fff4e7)',
+                color: 'var(--gray-700)', fontWeight: 600, fontSize: '0.88rem',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
@@ -825,8 +826,8 @@ export default function DeptDashboard() {
             <p style={{ margin: 0, color: '#dc2626', fontWeight: 700 }}>{error}</p>
           </div>
         ) : complaints.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', background: '#fff',
-            borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--gray-200)' }}>
+          <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--theme-component, #d9d9d9)',
+            borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--theme-component-border, #bfbfbf)' }}>
             <Inbox size={40} color="var(--gray-300)" style={{ margin: '0 auto 14px', display: 'block' }} />
             <h3 style={{ margin: '0 0 6px', color: 'var(--gray-500)', fontWeight: 700 }}>
               {hi ? 'कोई शिकायत नहीं मिली' : 'No complaints found'}

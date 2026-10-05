@@ -105,8 +105,8 @@ export const ComplaintForm: React.FC = () => {
           </p>
           <div
             style={{
-              background: '#fff',
-              border: '2px solid var(--green-400)',
+              background: 'var(--theme-component, #d9d9d9)',
+              border: '2px solid var(--theme-primary, #660033)',
               borderRadius: 'var(--radius-md)',
               padding: '16px 24px',
               marginBottom: 20,
@@ -117,7 +117,7 @@ export const ComplaintForm: React.FC = () => {
               style={{
                 fontSize: 'clamp(1.2rem, 2vw, 1.8rem)',
                 fontWeight: 900,
-                color: 'var(--green-700)',
+                color: 'var(--theme-primary, #660033)',
                 letterSpacing: 2,
                 fontFamily: 'monospace',
               }}
@@ -125,7 +125,7 @@ export const ComplaintForm: React.FC = () => {
               {ticket}
             </span>
           </div>
-          <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', marginBottom: 24, lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginBottom: 24, lineHeight: 1.5 }}>
             {language === 'hi'
               ? 'इस टिकट नंबर को सुरक्षित रखें। विभाग द्वारा समाधान के बाद आपको इसे सत्यापित करने का अवसर मिलेगा।'
               : 'Save this ticket number to track resolution progress. You will be able to verify once resolved.'}
@@ -137,7 +137,7 @@ export const ComplaintForm: React.FC = () => {
                 padding: '12px 24px',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
-                background: 'var(--green-600)',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 color: '#fff',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -151,9 +151,9 @@ export const ComplaintForm: React.FC = () => {
               style={{
                 padding: '12px 24px',
                 borderRadius: 'var(--radius-sm)',
-                border: '1.5px solid var(--gray-300)',
-                background: '#fff',
-                color: 'var(--gray-700)',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                background: 'var(--theme-component, #d9d9d9)',
+                color: 'var(--gray-800)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 fontSize: '0.9rem',
@@ -172,7 +172,7 @@ export const ComplaintForm: React.FC = () => {
       {/* Header */}
       <header
         style={{
-          background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+          background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
           padding: '14px 20px',
           color: '#fff',
           boxShadow: 'var(--shadow-sm)',
@@ -211,10 +211,10 @@ export const ComplaintForm: React.FC = () => {
         <form
           onSubmit={handleSubmit}
           style={{
-            background: '#fff',
+            background: 'var(--theme-component, #d9d9d9)',
             borderRadius: 'var(--radius-lg)',
             padding: 'clamp(16px, 3vw, 28px)',
-            border: '1.5px solid var(--gray-200)',
+            border: '1.5px solid var(--theme-component-border, #bfbfbf)',
             boxShadow: 'var(--shadow-sm)',
           }}
         >
@@ -376,12 +376,12 @@ export const ComplaintForm: React.FC = () => {
               background:
                 submitting || uploading
                   ? 'var(--gray-300)'
-                  : 'linear-gradient(135deg, #15803d, #22c55e)',
+                  : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
               color: '#fff',
               fontWeight: 800,
               fontSize: '1rem',
               cursor: submitting || uploading ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 16px rgba(22,163,74,0.3)',
+              boxShadow: '0 4px 16px rgba(102,0,51,0.3)',
               transition: 'var(--transition)',
             }}
           >
@@ -407,9 +407,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '11px 14px',
   borderRadius: 'var(--radius-sm)',
-  border: '1.5px solid var(--gray-200)',
+  border: '1.5px solid var(--theme-component-border, #bfbfbf)',
   fontSize: '0.88rem',
   color: 'var(--gray-900)',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--theme-bg, #fff4e7)',
 };

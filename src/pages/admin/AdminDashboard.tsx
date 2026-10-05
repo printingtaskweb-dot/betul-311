@@ -50,7 +50,7 @@ export const AdminDashboard: React.FC = () => {
       {/* ── Top Bar ── */}
       <header
         style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #4338ca 100%)',
+          background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
           padding: '12px clamp(12px, 3vw, 24px)',
           display: 'flex',
           alignItems: 'center',
@@ -141,8 +141,8 @@ export const AdminDashboard: React.FC = () => {
         <aside
           style={{
             width: 240,
-            background: '#fff',
-            borderRight: '1px solid var(--gray-200)',
+            background: 'var(--theme-component, #d9d9d9)',
+            borderRight: '1px solid var(--theme-component-border, #bfbfbf)',
             padding: '16px 12px',
             flexShrink: 0,
             display: 'flex',
@@ -165,8 +165,8 @@ export const AdminDashboard: React.FC = () => {
               border: 'none',
               cursor: 'pointer',
               marginBottom: 4,
-              background: activeTab === 'complaints' && activeDept === null ? 'var(--indigo-50)' : 'transparent',
-              color: activeTab === 'complaints' && activeDept === null ? 'var(--indigo-700)' : 'var(--gray-700)',
+              background: activeTab === 'complaints' && activeDept === null ? 'var(--theme-primary, #660033)' : 'transparent',
+              color: activeTab === 'complaints' && activeDept === null ? '#fff' : 'var(--gray-700)',
               fontWeight: activeTab === 'complaints' && activeDept === null ? 800 : 600,
               fontSize: '0.88rem',
               display: 'flex',
@@ -193,8 +193,8 @@ export const AdminDashboard: React.FC = () => {
               border: 'none',
               cursor: 'pointer',
               marginBottom: 12,
-              background: activeTab === 'staff' ? '#f0fdf4' : 'transparent',
-              color: activeTab === 'staff' ? '#15803d' : 'var(--gray-700)',
+              background: activeTab === 'staff' ? 'var(--theme-primary, #660033)' : 'transparent',
+              color: activeTab === 'staff' ? '#fff' : 'var(--gray-700)',
               fontWeight: activeTab === 'staff' ? 800 : 600,
               fontSize: '0.88rem',
               display: 'flex',
@@ -204,7 +204,7 @@ export const AdminDashboard: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Users size={16} color={activeTab === 'staff' ? '#16a34a' : 'var(--gray-500)'} />
+              <Users size={16} color={activeTab === 'staff' ? '#fff' : 'var(--gray-500)'} />
               <span>Staff Approvals</span>
             </div>
             {pendingStaffCount > 0 && (

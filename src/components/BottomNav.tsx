@@ -41,15 +41,15 @@ export const BottomNav: React.FC = () => {
         left: 0,
         right: 0,
         zIndex: 1000,
-        background: 'rgba(255, 255, 255, 0.95)',
-        borderTop: '1px solid var(--gray-200)',
+        background: 'var(--theme-component, #d9d9d9)',
+        borderTop: '1.5px solid var(--theme-component-border, #bfbfbf)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
         padding: '8px 0 10px',
-        boxShadow: '0 -4px 20px rgba(15,23,42,0.06)',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
       }}
     >
       {items.map((item) => {
@@ -65,10 +65,8 @@ export const BottomNav: React.FC = () => {
               gap: 3,
               textDecoration: 'none',
               color: active
-                ? item.isAdminBadge
-                  ? 'var(--indigo-600)'
-                  : 'var(--green-600)'
-                : 'var(--gray-400)',
+                ? 'var(--theme-primary, #660033)'
+                : 'var(--gray-500)',
               transition: 'var(--transition)',
               minWidth: 64,
             }}
@@ -80,12 +78,12 @@ export const BottomNav: React.FC = () => {
                   height: 48,
                   borderRadius: '50%',
                   marginTop: -22,
-                  background: 'linear-gradient(135deg, #15803d, #22c55e)',
+                  background: 'var(--primary-gradient)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(22,163,74,0.4)',
-                  border: '3px solid #fff',
+                  boxShadow: '0 4px 16px rgba(102,0,51,0.4)',
+                  border: '3px solid var(--theme-component, #d9d9d9)',
                 }}
               >
                 <Plus size={24} color="#fff" />

@@ -19,12 +19,12 @@ export const Home: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--gray-50)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--theme-bg, #fff4e7)', paddingBottom: 80 }}>
       {/* ── Top Bar / Header ── */}
       <header
         style={{
-          background: '#fff',
-          borderBottom: '1px solid var(--gray-200)',
+          background: 'var(--theme-component, #d9d9d9)',
+          borderBottom: '1.5px solid var(--theme-component-border, #bfbfbf)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
@@ -48,12 +48,12 @@ export const Home: React.FC = () => {
                 width: 38,
                 height: 38,
                 borderRadius: 'var(--radius-sm)',
-                background: 'linear-gradient(135deg, #15803d, #22c55e)',
+                background: 'var(--primary-gradient)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 20,
-                boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                boxShadow: '0 2px 8px rgba(102,0,51,0.3)',
               }}
             >
               🏛️
@@ -64,7 +64,7 @@ export const Home: React.FC = () => {
                   margin: 0,
                   fontSize: '1.05rem',
                   fontWeight: 900,
-                  color: 'var(--green-800)',
+                  color: 'var(--theme-primary, #660033)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.02em',
                 }}
@@ -293,8 +293,8 @@ export const Home: React.FC = () => {
             <div
               className="card-hover"
               style={{
-                background: '#fff',
-                border: '1.5px solid var(--gray-200)',
+                background: 'var(--theme-component, #d9d9d9)',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)',
                 borderRadius: 'var(--radius-lg)',
                 padding: 'clamp(16px, 2.5vw, 24px)',
                 display: 'flex',
@@ -479,10 +479,10 @@ export const Home: React.FC = () => {
       <footer className="app-container" style={{ marginTop: 24, marginBottom: 20 }}>
         <div
           style={{
-            background: '#fff',
+            background: 'var(--theme-component, #d9d9d9)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px clamp(16px, 3vw, 28px)',
-            border: '1.5px solid var(--gray-200)',
+            border: '1.5px solid var(--theme-component-border, #bfbfbf)',
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'space-between',

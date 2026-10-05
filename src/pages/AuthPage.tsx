@@ -72,7 +72,7 @@ export const AuthPage: React.FC = () => {
     <div style={{ minHeight: '100vh', background: 'var(--gray-50)' }}>
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(160deg, #14532d 0%, #166534 40%, #16a34a 100%)',
+        background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
         padding: '40px 24px 60px',
         textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
@@ -102,8 +102,8 @@ export const AuthPage: React.FC = () => {
               style={{
                 padding: '7px 18px',
                 border: 'none', cursor: 'pointer',
-                background: selectedLang === opt.code ? '#fff' : 'transparent',
-                color: selectedLang === opt.code ? '#166534' : 'rgba(255,255,255,0.85)',
+                background: selectedLang === opt.code ? 'var(--theme-component, #d9d9d9)' : 'transparent',
+                color: selectedLang === opt.code ? 'var(--theme-primary, #660033)' : 'rgba(255,255,255,0.85)',
                 fontWeight: selectedLang === opt.code ? 700 : 500,
                 fontSize: 13, transition: 'all 0.2s',
                 display: 'flex', alignItems: 'center', gap: 5,
@@ -118,10 +118,11 @@ export const AuthPage: React.FC = () => {
       {/* Card */}
       <div style={{ maxWidth: 440, margin: '10px auto 0', padding: '0 16px 100px' }}>
         <div style={{
-          background: '#fff',
+          background: 'var(--theme-component, #d9d9d9)',
           borderRadius: 20,
           boxShadow: '0 8px 40px rgba(0,0,0,0.1)',
           overflow: 'hidden',
+          border: '1.5px solid var(--theme-component-border, #bfbfbf)',
         }}>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1.5px solid var(--gray-100)' }}>
@@ -238,10 +239,10 @@ export const AuthPage: React.FC = () => {
                 style={{
                   width: '100%', padding: '14px 0',
                   borderRadius: 10, border: 'none',
-                  background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #166534, #16a34a)',
+                  background: loading ? 'var(--gray-300)' : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                   color: '#fff', fontWeight: 700, fontSize: 16,
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  marginTop: 8, boxShadow: '0 4px 16px rgba(22,163,74,0.3)',
+                  marginTop: 8, boxShadow: '0 4px 16px rgba(102,0,51,0.3)',
                   transition: 'opacity 0.15s',
                 }}
               >

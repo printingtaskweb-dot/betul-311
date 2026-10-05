@@ -51,8 +51,8 @@ export const RecentComplaints: React.FC = () => {
             <div
               className="card-hover"
               style={{
-                background: '#fff',
-                border: '1.5px solid var(--gray-100)',
+                background: 'var(--theme-component, #d9d9d9)',
+                border: '1.5px solid var(--theme-component-border, #bfbfbf)',
                 borderRadius: 12,
                 padding: '12px 14px',
                 display: 'flex', gap: 12, alignItems: 'flex-start',

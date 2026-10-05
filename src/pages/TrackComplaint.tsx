@@ -23,7 +23,7 @@ interface ResolutionData {
 export const TrackComplaint: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, language } = useAuth();
+  const { user, language, profile, isAdmin } = useAuth();
   const { getComplaintByTicket } = useComplaints();
   const [ticket, setTicket] = useState(searchParams.get('ticket') || '');
   const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -73,8 +73,18 @@ export const TrackComplaint: React.FC = () => {
     setLoading(false);
   };
 
+  const isDeptStaff = profile?.role === 'dept_staff' && !isAdmin;
+
   const handleCitizenVerify = async (satisfied: boolean) => {
     if (!complaint) return;
+    if (isDeptStaff) {
+      alert(
+        language === 'hi'
+          ? 'विभाग स्टाफ अपने स्वयं के कार्य को सत्यापित नहीं कर सकता। केवल शिकायतकर्ता नागरिक या एडमिन ही सत्यापन कर सकते हैं।'
+          : 'Department staff cannot verify completed work. Only the complaint citizen or an administrator can verify.'
+      );
+      return;
+    }
     setVerifying(true);
 
     await supabase.from('verifications').insert({
@@ -82,6 +92,28 @@ export const TrackComplaint: React.FC = () => {
       verified_by: 'citizen',
       is_satisfied: satisfied,
       note: satisfied ? 'Citizen confirmed resolution' : 'Citizen rejected resolution',
+    });
+
+    if (satisfied) {
+      await supabase.from('complaints').update({ status: 'verified' }).eq('id', complaint.id);
+      setComplaint({ ...complaint, status: 'verified' });
+    } else {
+      await supabase.from('complaints').update({ status: 'in_progress' }).eq('id', complaint.id);
+      setComplaint({ ...complaint, status: 'in_progress' });
+    }
+    setVerified(true);
+    setVerifying(false);
+  };
+
+  const handleAdminVerify = async (satisfied: boolean) => {
+    if (!complaint || !isAdmin) return;
+    setVerifying(true);
+
+    await supabase.from('verifications').insert({
+      complaint_id: complaint.id,
+      verified_by: 'admin',
+      is_satisfied: satisfied,
+      note: satisfied ? 'Verified and closed by municipal administrator' : 'Admin rejected resolution',
     });
 
     if (satisfied) {
@@ -203,11 +235,11 @@ export const TrackComplaint: React.FC = () => {
           style={{
             display: 'flex',
             gap: 10,
-            background: '#fff',
+            background: 'var(--theme-component, #d9d9d9)',
             padding: 8,
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-sm)',
-            border: '1.5px solid var(--gray-200)',
+            border: '1.5px solid var(--theme-component-border, #bfbfbf)',
           }}
         >
           <input
@@ -233,7 +265,7 @@ export const TrackComplaint: React.FC = () => {
               padding: '10px 20px',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
-              background: 'var(--green-600)',
+              background: 'var(--theme-primary, #660033)',
               color: '#fff',
               fontWeight: 700,
               cursor: 'pointer',
@@ -253,17 +285,17 @@ export const TrackComplaint: React.FC = () => {
               marginTop: 24,
               textAlign: 'center',
               padding: '36px 20px',
-              background: '#fff',
+              background: 'var(--theme-component, #d9d9d9)',
               borderRadius: 'var(--radius-md)',
-              border: '1.5px dashed var(--gray-200)',
-              color: 'var(--gray-500)',
+              border: '1.5px dashed var(--theme-component-border, #bfbfbf)',
+              color: 'var(--gray-600)',
             }}
           >
             <p style={{ fontSize: 36, margin: '0 0 10px' }}>🔍</p>
             <p style={{ fontWeight: 700, color: 'var(--gray-800)', margin: '0 0 4px' }}>
               {language === 'hi' ? 'कोई शिकायत नहीं मिली' : 'No complaint found'}
             </p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: 0 }}>
               {language === 'hi'
                 ? `टिकट नंबर '${ticket}' की पुनः जांच करें।`
                 : `Please check the ticket number '${ticket}' and try again.`}
@@ -275,8 +307,8 @@ export const TrackComplaint: React.FC = () => {
           <div
             style={{
               marginTop: 20,
-              background: '#fff',
-              border: '1.5px solid var(--gray-200)',
+              background: 'var(--theme-component, #d9d9d9)',
+              border: '1.5px solid var(--theme-component-border, #bfbfbf)',
               borderRadius: 'var(--radius-lg)',
               overflow: 'hidden',
               boxShadow: 'var(--shadow-sm)',
@@ -459,10 +491,10 @@ export const TrackComplaint: React.FC = () => {
                   style={{
                     marginTop: 20,
                     padding: '18px',
-                    background: '#fff',
-                    border: '2px solid #86efac',
+                    background: 'var(--theme-component, #d9d9d9)',
+                    border: '2px solid var(--theme-component-border, #bfbfbf)',
                     borderRadius: 'var(--radius-md)',
-                    boxShadow: '0 4px 16px rgba(22,163,74,0.08)',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
@@ -581,74 +613,163 @@ export const TrackComplaint: React.FC = () => {
                 })}
               </div>
 
-              {/* Citizen Verification Panel – when status is 'resolved' */}
+              {/* Verification Panel – when status is 'resolved' */}
               {complaint.status === 'resolved' && !verified && (
-                <div
-                  style={{
-                    marginTop: 20,
-                    padding: '16px 18px',
-                    background: 'var(--indigo-50)',
-                    border: '1.5px solid var(--indigo-500)',
-                    borderRadius: 'var(--radius-md)',
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: '0 0 12px',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      color: 'var(--indigo-900)',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    🔔 {language === 'hi'
-                      ? 'नगर निगम टीम द्वारा समस्या का समाधान किया गया है। क्या आप संतुष्ट हैं?'
-                      : 'The municipal team marked this issue as resolved. Is the problem fixed at your location?'}
-                  </p>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button
-                      onClick={() => handleCitizenVerify(true)}
-                      disabled={verifying}
+                <div>
+                  {/* Case 1: Department Staff is viewing */}
+                  {isDeptStaff ? (
+                    <div
                       style={{
-                        flex: 1,
-                        padding: '11px 0',
-                        borderRadius: 'var(--radius-sm)',
-                        border: 'none',
-                        background: 'var(--green-600)',
-                        color: '#fff',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        fontSize: '0.85rem',
+                        marginTop: 20,
+                        padding: '16px 18px',
+                        background: '#fef3c7',
+                        border: '1.5px solid #f59e0b',
+                        borderRadius: 'var(--radius-md)',
                       }}
                     >
-                      <CheckCircle2 size={16} /> {language === 'hi' ? 'हाँ, हल हो गया!' : 'Yes, Fixed!'}
-                    </button>
-                    <button
-                      onClick={() => handleCitizenVerify(false)}
-                      disabled={verifying}
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: '#92400e' }}>
+                        ⏳ {language === 'hi' ? 'सत्यापन केवल नागरिक या एडमिन द्वारा मान्य' : 'Verification Only by Citizen or Admin'}
+                      </p>
+                      <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: '#78350f', lineHeight: 1.5 }}>
+                        {language === 'hi'
+                          ? 'विभाग ने कार्य समाधान प्रस्तुत कर दिया है। पारदर्शिता हेतु विभाग स्वयं अपने कार्य को सत्यापित नहीं कर सकता। सत्यापन केवल शिकायतकर्ता नागरिक या नगर निगम एडमिन द्वारा ही किया जाएगा।'
+                          : 'Department has submitted work resolution proof. For fairness, department staff cannot self-verify. Verification must be performed by the complaint citizen or an administrator.'}
+                      </p>
+                    </div>
+                  ) : isAdmin ? (
+                    /* Case 2: Municipal Admin is viewing */
+                    <div
                       style={{
-                        flex: 1,
-                        padding: '11px 0',
-                        borderRadius: 'var(--radius-sm)',
-                        border: '1.5px solid var(--red-600)',
-                        background: '#fff',
-                        color: 'var(--red-600)',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        fontSize: '0.85rem',
+                        marginTop: 20,
+                        padding: '16px 18px',
+                        background: 'var(--theme-component, #d9d9d9)',
+                        border: '2px solid var(--theme-primary, #660033)',
+                        borderRadius: 'var(--radius-md)',
                       }}
                     >
-                      <XCircle size={16} /> {language === 'hi' ? 'नहीं, अभी भी समस्या है' : 'Not Fixed Yet'}
-                    </button>
-                  </div>
+                      <p style={{ margin: '0 0 4px', fontSize: '0.72rem', fontWeight: 800, color: 'var(--theme-primary, #660033)', textTransform: 'uppercase' }}>
+                        👑 {language === 'hi' ? 'नगर निगम एडमिन सत्यापन' : 'Municipal Admin Verification'}
+                      </p>
+                      <p style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 700, color: 'var(--gray-900)' }}>
+                        {language === 'hi'
+                          ? 'विभाग द्वारा कार्य समाप्ति का फोटो उपलब्ध है। क्या आप एडमिन के रूप में इसे सत्यापित और बंद करना चाहते हैं?'
+                          : 'Work-done proof has been provided. Do you approve and mark this verified as Administrator?'}
+                      </p>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                          onClick={() => handleAdminVerify(true)}
+                          disabled={verifying}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 'var(--radius-sm)',
+                            border: 'none',
+                            background: 'var(--theme-primary, #660033)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <CheckCircle2 size={16} /> {language === 'hi' ? 'एडमिन सत्यापन करें' : 'Admin Verify & Close'}
+                        </button>
+                        <button
+                          onClick={() => handleAdminVerify(false)}
+                          disabled={verifying}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1.5px solid #dc2626',
+                            background: 'var(--theme-component, #d9d9d9)',
+                            color: '#dc2626',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <XCircle size={16} /> {language === 'hi' ? 'अस्वीकार करें' : 'Reject Resolution'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Case 3: Complaint Citizen / User is viewing */
+                    <div
+                      style={{
+                        marginTop: 20,
+                        padding: '16px 18px',
+                        background: 'var(--theme-component, #d9d9d9)',
+                        border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                        borderRadius: 'var(--radius-md)',
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: '0 0 12px',
+                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          color: 'var(--gray-900)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        🔔 {language === 'hi'
+                          ? 'नागरिक सत्यापन: नगर निगम टीम द्वारा समस्या का समाधान किया गया है। क्या आप संतुष्ट हैं?'
+                          : 'Citizen Verification: The municipal team marked this issue as resolved. Is the problem fixed at your location?'}
+                      </p>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                          onClick={() => handleCitizenVerify(true)}
+                          disabled={verifying}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 'var(--radius-sm)',
+                            border: 'none',
+                            background: 'var(--theme-primary, #660033)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <CheckCircle2 size={16} /> {language === 'hi' ? 'हाँ, हल हो गया!' : 'Yes, Fixed!'}
+                        </button>
+                        <button
+                          onClick={() => handleCitizenVerify(false)}
+                          disabled={verifying}
+                          style={{
+                            flex: 1,
+                            padding: '11px 0',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1.5px solid #dc2626',
+                            background: 'var(--theme-component, #d9d9d9)',
+                            color: '#dc2626',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <XCircle size={16} /> {language === 'hi' ? 'नहीं, अभी भी समस्या है' : 'Not Fixed Yet'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -693,18 +814,19 @@ export const TrackComplaint: React.FC = () => {
             style={{
               width: '100%',
               maxWidth: 520,
-              background: '#fff',
+              background: 'var(--theme-component, #d9d9d9)',
               borderRadius: 'var(--radius-xl)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               overflow: 'hidden',
               maxHeight: '90vh',
               overflowY: 'auto',
+              border: '1.5px solid var(--theme-component-border, #bfbfbf)',
             }}
           >
             {/* Modal Header */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 padding: '20px 24px',
                 display: 'flex',
                 alignItems: 'center',
@@ -849,8 +971,8 @@ export const TrackComplaint: React.FC = () => {
                   onClick={() => setResolvingModal(false)}
                   style={{
                     flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)',
-                    border: '1.5px solid var(--gray-200)', background: '#fff',
-                    color: 'var(--gray-600)', fontWeight: 700, cursor: 'pointer',
+                    border: '1.5px solid var(--theme-component-border, #bfbfbf)', background: 'var(--theme-bg, #fff4e7)',
+                    color: 'var(--gray-700)', fontWeight: 700, cursor: 'pointer',
                   }}
                 >
                   {language === 'hi' ? 'रद्द करें' : 'Cancel'}
@@ -860,11 +982,11 @@ export const TrackComplaint: React.FC = () => {
                   disabled={submittingResolve}
                   style={{
                     flex: 2, padding: '12px', borderRadius: 'var(--radius-sm)',
-                    border: 'none', background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    border: 'none', background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                     color: '#fff', fontWeight: 800, fontSize: '0.9rem',
                     cursor: submittingResolve ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                    boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+                    boxShadow: '0 4px 14px rgba(102,0,51,0.3)',
                   }}
                 >
                   {submittingResolve ? (

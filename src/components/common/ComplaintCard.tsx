@@ -19,8 +19,8 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint, onClick
     <div
       onClick={onClick}
       style={{
-        background: '#fff',
-        border: '1.5px solid #e5e7eb',
+        background: 'var(--theme-component, #d9d9d9)',
+        border: '1.5px solid var(--theme-component-border, #bfbfbf)',
         borderRadius: 12,
         padding: compact ? '12px 14px' : '16px 18px',
         cursor: onClick ? 'pointer' : 'default',
