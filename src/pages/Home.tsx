@@ -72,7 +72,7 @@ export const Home: React.FC = () => {
                 JILA BETUL 
               </p>
               <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--gray-500)', fontWeight: 500 }}>
-                {language === 'hi' ? 'नागरिक शिकायत पोर्टल' : 'Civic Grievance & Redressal'}
+                {language === 'hi' ? 'ननागरिक समाधान साथी' : 'Citizen Support Partner'}
               </p>
             </div>
           </Link>
