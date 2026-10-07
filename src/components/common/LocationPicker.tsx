@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Loader2, Navigation, Compass, ExternalLink } from 'lucide-react';
+import { MapPin, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface LocationPickerProps {
   latitude: number | null;
@@ -8,178 +8,146 @@ interface LocationPickerProps {
   address: string | null;
   loading: boolean;
   error: string | null;
-  onDetect: () => void;
+  onDetect: () => void; // still used for retry on failure
+  language?: 'en' | 'hi';
 }
 
 export const LocationPicker: React.FC<LocationPickerProps> = ({
   latitude,
   longitude,
-  accuracy,
   address,
   loading,
   error,
   onDetect,
+  language = 'en',
 }) => {
-  const directionsUrl =
-    latitude && longitude
-      ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
-      : null;
+  const locationReady = !!latitude && !!longitude;
 
   return (
     <div
       style={{
-        background: 'var(--green-50)',
-        border: '1.5px solid var(--green-200)',
+        background: locationReady ? 'var(--green-50, #f0fdf4)' : 'var(--theme-bg, #fff4e7)',
+        border: locationReady
+          ? '1.5px solid var(--green-300, #86efac)'
+          : '1.5px solid var(--theme-component-border, #bfbfbf)',
         borderRadius: 'var(--radius-md)',
         padding: '14px 16px',
         boxShadow: 'var(--shadow-sm)',
+        transition: 'var(--transition)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={18} color="var(--green-600)" />
-          <span style={{ fontWeight: 800, color: 'var(--green-900)', fontSize: '0.9rem' }}>
-            GPS Location & Navigation
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onDetect}
-          disabled={loading}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 16px',
-            borderRadius: 'var(--radius-full)',
-            border: 'none',
-            background: 'var(--green-600)',
-            color: '#fff',
-            fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '0.8rem',
-            opacity: loading ? 0.75 : 1,
-            boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
-            transition: 'var(--transition)',
-          }}
-        >
-          {loading ? <Loader2 size={14} className="spin" /> : <Navigation size={14} />}
-          {loading ? 'Detecting GPS…' : latitude ? 'Update Location' : 'Auto-detect Location'}
-        </button>
-      </div>
-
-      {error && (
-        <div
-          style={{
-            marginTop: 10,
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-sm)',
-            background: '#fee2e2',
-            border: '1px solid #fecaca',
-            color: '#dc2626',
-            fontSize: '0.82rem',
-            lineHeight: 1.4,
-          }}
-        >
-          ⚠️ {error}
-        </div>
-      )}
-
-      {latitude && longitude && (
-        <div style={{ marginTop: 12 }}>
-          {/* Coordinates and accuracy badge */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
-            <span
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                color: 'var(--green-900)',
-                background: '#fff',
-                padding: '3px 8px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--green-300)',
-              }}
-            >
-              📍 {latitude.toFixed(6)}, {longitude.toFixed(6)}
-            </span>
-            {accuracy !== undefined && accuracy !== null && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {loading ? (
+          <>
+            <Loader2 size={20} className="spin" color="var(--green-600)" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span
                 style={{
-                  fontSize: '0.72rem',
                   fontWeight: 700,
-                  color: accuracy <= 15 ? 'var(--green-700)' : 'var(--amber-500)',
-                  background: accuracy <= 15 ? 'var(--green-100)' : '#fef3c7',
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-full)',
+                  color: 'var(--gray-800)',
+                  fontSize: '0.9rem',
                 }}
               >
-                🎯 Accuracy: ±{accuracy}m {accuracy <= 15 ? '(High Precision)' : '(Approximate)'}
+                {language === 'hi'
+                  ? 'स्थान का पता लगाया जा रहा है…'
+                  : 'Detecting your location…'}
               </span>
-            )}
-          </div>
-
-          {/* Resolved street address */}
-          <p
-            style={{
-              fontSize: '0.82rem',
-              color: 'var(--gray-700)',
-              margin: '4px 0 10px',
-              lineHeight: 1.4,
-            }}
-          >
-            {address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`}
-          </p>
-
-          {/* Action buttons including Get Directions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {directionsUrl && (
-              <a
-                href={directionsUrl}
-                target="_blank"
-                rel="noreferrer"
+              <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                {language === 'hi'
+                  ? 'कृपया कुछ क्षण प्रतीक्षा करें'
+                  : 'Please wait a moment'}
+              </span>
+            </div>
+          </>
+        ) : locationReady ? (
+          <>
+            <MapPin size={20} color="var(--green-600)" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+              <span
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--blue-600)',
-                  color: '#fff',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
+                  fontWeight: 800,
+                  color: 'var(--green-800)',
+                  fontSize: '0.9rem',
                 }}
               >
-                <Compass size={14} /> Get Directions (Google Maps)
-              </a>
-            )}
-            <a
-              href={`https://maps.google.com/?q=${latitude},${longitude}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: '0.78rem',
-                color: 'var(--gray-600)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
-            >
-              <ExternalLink size={12} /> View Pin on Map
-            </a>
-          </div>
-        </div>
-      )}
+                {language === 'hi'
+                  ? 'स्थान सफलतापूर्वक दर्ज हो गया'
+                  : 'Location detected successfully'}
+              </span>
+              {address && (
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--gray-600)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {address}
+                </span>
+              )}
+            </div>
+            <CheckCircle2 size={20} color="var(--green-600)" />
+          </>
+        ) : (
+          <>
+            <AlertCircle size={20} color="#dc2626" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+              <span
+                style={{
+                  fontWeight: 800,
+                  color: '#dc2626',
+                  fontSize: '0.9rem',
+                }}
+              >
+                {language === 'hi'
+                  ? 'स्थान दर्ज नहीं हो सका'
+                  : 'Could not detect location'}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                {error ||
+                  (language === 'hi'
+                    ? 'कृपया स्थान अनुमति दें और पुनः प्रयास करें'
+                    : 'Please allow location access and retry')}
+              </span>
+              <button
+                type="button"
+                onClick={onDetect}
+                style={{
+                  alignSelf: 'flex-start',
+                  marginTop: 4,
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid #dc2626',
+                  background: '#fff',
+                  color: '#dc2626',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {language === 'hi' ? 'पुनः प्रयास करें' : 'Retry'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
-      {!latitude && !loading && !error && (
-        <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', margin: '8px 0 0' }}>
-          Tap "Auto-detect Location" to record accurate GPS coordinates so municipal teams can navigate directly to the spot.
-        </p>
-      )}
+      {/* Privacy note */}
+      <p
+        style={{
+          margin: '10px 0 0',
+          fontSize: '0.72rem',
+          color: 'var(--gray-500)',
+          lineHeight: 1.4,
+        }}
+      >
+        🔒{' '}
+        {language === 'hi'
+          ? 'आपका स्थान आपकी शिकायत के साथ सुरक्षित रूप से संलग्न किया जाएगा।'
+          : 'Your location will be securely attached to your complaint.'}
+      </p>
     </div>
   );
 };
