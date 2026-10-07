@@ -6,7 +6,7 @@ import { t } from '../lib/i18n';
 type Service = {
   slug: string;
   icon?: string;      // emoji fallback / default
-  image?: string;     // 👈 custom image path (takes priority if present)
+  image?: string;     // custom image path (takes priority if present)
   gradient: string;
   shadow: string;
   route: string;
@@ -15,7 +15,7 @@ type Service = {
 const SERVICES: Service[] = [
   {
     slug: 'green',
-    image: '/green.png', // 👈 served from public/green.png
+    image: '/green.png', // served from public/green.png
     gradient: 'linear-gradient(135deg, #166534, #16a34a)',
     shadow: 'rgba(22,163,74,0.3)',
     route: '/department/green',
@@ -110,6 +110,8 @@ export const ServicesGrid: React.FC = () => {
       <div className="services-grid-responsive">
         {SERVICES.map((svc) => {
           const label = t(language, svc.slug as any) || svc.slug;
+          const isImageCard = !!svc.image;
+
           return (
             <Link key={svc.slug} to={svc.route} style={{ textDecoration: 'none' }}>
               <div
@@ -128,36 +130,41 @@ export const ServicesGrid: React.FC = () => {
                   height: '100%',
                 }}
               >
-                <div
-                  style={{
-                    width: 'clamp(42px, 4vw, 52px)',
-                    height: 'clamp(42px, 4vw, 52px)',
-                    borderRadius: '50%',
-                    background: svc.gradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 'clamp(20px, 2vw, 24px)',
-                    boxShadow: `0 6px 16px ${svc.shadow}`,
-                    flexShrink: 0,
-                    overflow: 'hidden', // 👈 ensures image stays inside circle
-                  }}
-                >
-                  {svc.image ? (
-                    <img
-                      src={svc.image}
-                      alt={label}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                  ) : (
-                    svc.icon
-                  )}
-                </div>
+                {isImageCard ? (
+                  /* ── Square image card (green service) ── */
+                  <img
+                    src={svc.image}
+                    alt={label}
+                    style={{
+                      width: 'clamp(52px, 5vw, 64px)',
+                      height: 'clamp(52px, 5vw, 64px)',
+                      objectFit: 'cover',
+                      borderRadius: 8,
+                      display: 'block',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  /* ── Round emoji circle (all other services) ── */
+                  <div
+                    style={{
+                      width: 'clamp(42px, 4vw, 52px)',
+                      height: 'clamp(42px, 4vw, 52px)',
+                      borderRadius: '50%',
+                      background: svc.gradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 'clamp(20px, 2vw, 24px)',
+                      boxShadow: `0 6px 16px ${svc.shadow}`,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {svc.icon}
+                  </div>
+                )}
+
+                {/* Label — always below the image/icon */}
                 <span
                   style={{
                     fontSize: 'clamp(0.72rem, 0.7rem + 0.1vw, 0.82rem)',
