@@ -97,13 +97,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
             letterSpacing: 3, margin: 0, lineHeight: 1,
             textShadow: '0 2px 20px rgba(0,0,0,0.35)',
           }}>
-            IMC 311
+            JILA BETUL
           </h1>
           <p style={{
             color: 'rgba(250,243,224,0.85)',              // soft cream
             fontSize: 15, marginTop: 6, letterSpacing: 1, fontWeight: 500,
           }}>
-            Indore Municipal Corporation
+           Citizen Support Partner
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
             color: '#FAF3E0', fontSize: 13, margin: 0, letterSpacing: 0.5,
             fontFamily: 'var(--font-hindi)',
           }}>
-            स्वच्छ इंदौर · Swachh Indore
+            स्वच्छ बैतूल · Swachh BETUL
           </p>
         </div>
 
