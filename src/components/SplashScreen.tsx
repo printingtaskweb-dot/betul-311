@@ -10,7 +10,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
   useEffect(() => {
     const t1 = setTimeout(() => setExiting(true), 2400);
     const t2 = setTimeout(() => onDone(), 2900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [onDone]);
 
   return (
@@ -27,7 +30,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
         pointerEvents: exiting ? 'none' : 'auto',
       }}
     >
-      {/* Local keyframes (maroon pulse + fade-in) */}
+      {/* Local keyframes */}
       <style>{`
         @keyframes splash-fade {
           from { opacity: 0; transform: translateY(12px); }
@@ -56,17 +59,26 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
         animation: 'splash-fade 0.7s ease forwards',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
       }}>
-        {/* Emblem */}
+        {/* Logo image */}
         <div style={{
           width: 100, height: 100, borderRadius: '50%',
           background: 'var(--theme-component)',
           border: '3px solid var(--theme-component-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 50,
+          overflow: 'hidden',
           boxShadow: '0 0 40px rgba(255,255,255,0.2)',
           animation: 'splash-pulse 2s ease-in-out infinite',
         }}>
-          🏛️
+          <img
+            src="/logo.jpeg"
+            alt="IMC 311 Logo"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
         </div>
 
         {/* App name */}
@@ -123,7 +135,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
         color: 'rgba(255,255,255,0.55)', fontSize: 12,
         letterSpacing: 0.5,
       }}>
-        Powered by IMC · Smart City Mission
+        Powered by printing task · Smart City Mission
       </p>
     </div>
   );
