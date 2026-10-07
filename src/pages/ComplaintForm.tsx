@@ -30,6 +30,9 @@ export const ComplaintForm: React.FC = () => {
   const [ticket, setTicket] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Location must be detected before anything else can be filled
+  const locationReady = loc.latitude != null && loc.longitude != null;
+
   // Pre-select dept from URL
   useEffect(() => {
     const slug = searchParams.get('dept');
@@ -39,24 +42,35 @@ export const ComplaintForm: React.FC = () => {
     }
   }, [searchParams, departments]);
 
+  // If location is lost/reset, clear any error that was about location
+  useEffect(() => {
+    if (locationReady) setError(null);
+  }, [locationReady]);
+
   const handleFileSelected = (file: File) => {
+    if (!locationReady) return; // safety: no photo before location
     setPhotoFile(file);
     setPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!locationReady) {
+      return setError(
+        language === 'hi'
+          ? 'कृपया पहले अपना स्थान दर्ज करें।'
+          : 'Please detect your location first.'
+      );
+    }
     if (!selectedDept) {
       return setError(language === 'hi' ? 'कृपया विभाग का चयन करें।' : 'Please select a department.');
-    }
-    if (!description.trim()) {
-      return setError(language === 'hi' ? 'कृपया शिकायत का विवरण दें।' : 'Please describe the issue.');
     }
     if (!photoFile) {
       return setError(language === 'hi' ? 'कृपया समस्या का फोटो अपलोड करें।' : 'Please attach a photo.');
     }
-    if (!loc.latitude) {
-      return setError(language === 'hi' ? 'कृपया अपना स्थान स्वतः दर्ज करें।' : 'Please auto-detect your location.');
+    if (!description.trim()) {
+      return setError(language === 'hi' ? 'कृपया शिकायत का विवरण दें।' : 'Please describe the issue.');
     }
 
     setSubmitting(true);
@@ -167,6 +181,8 @@ export const ComplaintForm: React.FC = () => {
     );
   }
 
+  const submitDisabled = !locationReady || submitting || uploading;
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--gray-50)', paddingBottom: 90 }}>
       {/* Header */}
@@ -218,83 +234,10 @@ export const ComplaintForm: React.FC = () => {
             boxShadow: 'var(--shadow-sm)',
           }}
         >
-          {/* Department selector */}
+          {/* STEP 1: Location (always active) */}
           <div style={{ marginBottom: 22 }}>
             <label style={labelStyle}>
-              🏢 {t(language, 'selectDept')} *
-            </label>
-            {deptsLoading ? (
-              <div className="shimmer" style={{ height: 48, borderRadius: 10, marginTop: 8 }} />
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                  gap: 8,
-                  marginTop: 10,
-                }}
-              >
-                {departments.map((dept) => {
-                  const isSelected = selectedDept?.id === dept.id;
-                  return (
-                    <button
-                      key={dept.id}
-                      type="button"
-                      onClick={() => setSelectedDept(dept)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '10px 6px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: isSelected ? `2px solid ${dept.color}` : '1.5px solid var(--gray-200)',
-                        background: isSelected ? `${dept.color}15` : '#fff',
-                        cursor: 'pointer',
-                        transition: 'var(--transition)',
-                      }}
-                    >
-                      <span style={{ fontSize: 22 }}>{dept.icon}</span>
-                      <span
-                        style={{
-                          fontSize: '0.78rem',
-                          fontWeight: isSelected ? 800 : 600,
-                          color: isSelected ? dept.color : 'var(--gray-700)',
-                          textAlign: 'center',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {dept.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Photo */}
-          <div style={{ marginBottom: 22 }}>
-            <label style={labelStyle}>
-              📸 {t(language, 'uploadPhoto')} *
-            </label>
-            <div style={{ marginTop: 8 }}>
-              <PhotoUploader
-                onFileSelected={handleFileSelected}
-                preview={preview}
-                onClear={() => {
-                  setPhotoFile(null);
-                  setPreview(null);
-                }}
-                uploading={uploading}
-              />
-            </div>
-          </div>
-
-          {/* Location */}
-          <div style={{ marginBottom: 22 }}>
-            <label style={labelStyle}>
-              📍 {t(language, 'detectLocation')} *
+              📍 {language === 'hi' ? 'चरण 1:' : 'Step 1:'} {t(language, 'detectLocation')} *
             </label>
             <div style={{ marginTop: 8 }}>
               <LocationPicker
@@ -307,46 +250,155 @@ export const ComplaintForm: React.FC = () => {
                 onDetect={loc.detectLocation}
               />
             </div>
+
+            {!locationReady && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                }}
+              >
+                🔒{' '}
+                {language === 'hi'
+                  ? 'फोटो लेने और विवरण भरने के लिए पहले अपना स्थान दर्ज करें।'
+                  : 'Detect your location first to unlock photo and other details.'}
+              </div>
+            )}
           </div>
 
-          {/* Description */}
-          <div style={{ marginBottom: 22 }}>
-            <label style={labelStyle}>
-              📝 {t(language, 'description')} *
-            </label>
-            <textarea
-              placeholder={
-                language === 'hi'
-                  ? 'समस्या का स्पष्ट विवरण दें (उदा. वार्ड 12 में मुख्य सड़क पर कचरा जमा है)...'
-                  : 'Describe the issue clearly with landmark details…'
-              }
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              style={{ ...inputStyle, marginTop: 8, resize: 'vertical' }}
-            />
-          </div>
+          {/* STEP 2: Everything else (locked until location is ready) */}
+          <fieldset
+            disabled={!locationReady}
+            aria-disabled={!locationReady}
+            style={{
+              border: 'none',
+              padding: 0,
+              margin: 0,
+              minWidth: 0,
+              opacity: locationReady ? 1 : 0.45,
+              pointerEvents: locationReady ? 'auto' : 'none',
+              filter: locationReady ? 'none' : 'grayscale(0.6)',
+              transition: 'opacity 0.25s ease',
+            }}
+          >
+            {/* Department selector */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                🏢 {t(language, 'selectDept')} *
+              </label>
+              {deptsLoading ? (
+                <div className="shimmer" style={{ height: 48, borderRadius: 10, marginTop: 8 }} />
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                    gap: 8,
+                    marginTop: 10,
+                  }}
+                >
+                  {departments.map((dept) => {
+                    const isSelected = selectedDept?.id === dept.id;
+                    return (
+                      <button
+                        key={dept.id}
+                        type="button"
+                        onClick={() => setSelectedDept(dept)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '10px 6px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: isSelected ? `2px solid ${dept.color}` : '1.5px solid var(--gray-200)',
+                          background: isSelected ? `${dept.color}15` : '#fff',
+                          cursor: 'pointer',
+                          transition: 'var(--transition)',
+                        }}
+                      >
+                        <span style={{ fontSize: 22 }}>{dept.icon}</span>
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            fontWeight: isSelected ? 800 : 600,
+                            color: isSelected ? dept.color : 'var(--gray-700)',
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {dept.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-          {/* Contact Details (Responsive 2 columns) */}
-          <div style={{ marginBottom: 24 }}>
-            <label style={labelStyle}>
-              👤 {t(language, 'yourDetails')} ({t(language, 'optional')})
-            </label>
-            <div className="two-col-responsive" style={{ marginTop: 8 }}>
-              <input
-                placeholder={t(language, 'name')}
-                value={citizenName}
-                onChange={(e) => setCitizenName(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder={t(language, 'phone')}
-                value={citizenPhone}
-                onChange={(e) => setCitizenPhone(e.target.value)}
-                style={inputStyle}
+            {/* Photo */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                📸 {t(language, 'uploadPhoto')} *
+              </label>
+              <div style={{ marginTop: 8 }}>
+                <PhotoUploader
+                  onFileSelected={handleFileSelected}
+                  preview={preview}
+                  onClear={() => {
+                    setPhotoFile(null);
+                    setPreview(null);
+                  }}
+                  uploading={uploading}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={labelStyle}>
+                📝 {t(language, 'description')} *
+              </label>
+              <textarea
+                placeholder={
+                  language === 'hi'
+                    ? 'समस्या का स्पष्ट विवरण दें (उदा. वार्ड 12 में मुख्य सड़क पर कचरा जमा है)...'
+                    : 'Describe the issue clearly with landmark details…'
+                }
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                style={{ ...inputStyle, marginTop: 8, resize: 'vertical' }}
               />
             </div>
-          </div>
+
+            {/* Contact Details (Responsive 2 columns) */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={labelStyle}>
+                👤 {t(language, 'yourDetails')} ({t(language, 'optional')})
+              </label>
+              <div className="two-col-responsive" style={{ marginTop: 8 }}>
+                <input
+                  placeholder={t(language, 'name')}
+                  value={citizenName}
+                  onChange={(e) => setCitizenName(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  placeholder={t(language, 'phone')}
+                  value={citizenPhone}
+                  onChange={(e) => setCitizenPhone(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </fieldset>
 
           {error && (
             <div
@@ -367,20 +419,19 @@ export const ComplaintForm: React.FC = () => {
 
           <button
             type="submit"
-            disabled={submitting || uploading}
+            disabled={submitDisabled}
             style={{
               width: '100%',
               padding: '14px 0',
               borderRadius: 'var(--radius-md)',
               border: 'none',
-              background:
-                submitting || uploading
-                  ? 'var(--gray-300)'
-                  : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
+              background: submitDisabled
+                ? 'var(--gray-300)'
+                : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
               color: '#fff',
               fontWeight: 800,
               fontSize: '1rem',
-              cursor: submitting || uploading ? 'not-allowed' : 'pointer',
+              cursor: submitDisabled ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 16px rgba(102,0,51,0.3)',
               transition: 'var(--transition)',
             }}
