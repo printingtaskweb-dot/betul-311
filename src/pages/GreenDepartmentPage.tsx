@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { t } from '../lib/i18n';
@@ -9,7 +9,7 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { LocationPicker } from '../components/common/LocationPicker';
 import { ComplaintCard } from '../components/common/ComplaintCard';
 import { BottomNav } from '../components/BottomNav';
-import { ArrowLeft, Recycle, Info } from 'lucide-react';
+import { ArrowLeft, Recycle, Info, MapPin, Loader2 } from 'lucide-react';
 
 const WASTE_TYPES = [
   { id: 'leaves', label: 'Fallen Leaves', hi: 'गिरे पत्ते', icon: '🍂' },
@@ -41,17 +41,47 @@ export const GreenDepartmentPage: React.FC = () => {
 
   const greenDept = departments.find((d) => d.slug === 'green');
 
+  // Location is only "ready" when we have coordinates
+  const locationReady = !!gps.latitude && !!gps.longitude;
+
+  // 🔹 Auto-detect location on mount (no manual button press)
+  useEffect(() => {
+    gps.detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 🔹 If location gets cleared, drop any attached photo
+  useEffect(() => {
+    if (!locationReady && photoFile) {
+      setPhotoFile(null);
+      setPreview(null);
+    }
+  }, [locationReady, photoFile]);
+
   const handleFileSelected = (file: File) => {
+    if (!locationReady) return; // guard
     setPhotoFile(file);
     setPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedType) return setError(language === 'hi' ? 'कृपया कचरे का प्रकार चुनें।' : 'Please select waste type.');
-    if (!photoFile) return setError(language === 'hi' ? 'कृपया कचरे की तस्वीर अपलोड करें।' : 'Please attach a photo of the waste.');
-    if (!gps.latitude) return setError(language === 'hi' ? 'कृपया स्थान स्वतः पता करें।' : 'Please detect your location.');
-    if (!greenDept) return setError('Department not found. Please ensure database is initialized.');
+    if (!selectedType)
+      return setError(language === 'hi' ? 'कृपया कचरे का प्रकार चुनें।' : 'Please select waste type.');
+
+    // Location check BEFORE photo check
+    if (!locationReady)
+      return setError(
+        language === 'hi'
+          ? 'कृपया पहले अपना स्थान स्वतः दर्ज होने दें।'
+          : 'Please wait for your location to be auto-detected.'
+      );
+
+    if (!photoFile)
+      return setError(language === 'hi' ? 'कृपया कचरे की तस्वीर अपलोड करें।' : 'Please attach a photo of the waste.');
+
+    if (!greenDept)
+      return setError('Department not found. Please ensure database is initialized.');
 
     setSubmitting(true);
     setError(null);
@@ -147,6 +177,8 @@ export const GreenDepartmentPage: React.FC = () => {
                 setPreview(null);
                 setDescription('');
                 setSelectedType('');
+                // re-trigger location detection for the next request
+                gps.detectLocation();
               }}
               style={{
                 padding: '11px 22px',
@@ -333,25 +365,7 @@ export const GreenDepartmentPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Photo Upload */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={labelStyle}>
-                📸 {t(language, 'uploadPhoto')} *
-              </label>
-              <div style={{ marginTop: 8 }}>
-                <PhotoUploader
-                  onFileSelected={handleFileSelected}
-                  preview={preview}
-                  onClear={() => {
-                    setPhotoFile(null);
-                    setPreview(null);
-                  }}
-                  uploading={uploading}
-                />
-              </div>
-            </div>
-
-            {/* Location */}
+            {/* Location — moved ABOVE photo, auto-detected on mount */}
             <div style={{ marginBottom: 22 }}>
               <label style={labelStyle}>
                 📍 {t(language, 'detectLocation')} *
@@ -366,6 +380,79 @@ export const GreenDepartmentPage: React.FC = () => {
                   error={gps.error}
                   onDetect={gps.detectLocation}
                 />
+              </div>
+              {locationReady && !gps.loading && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: 8,
+                    fontSize: '0.78rem',
+                    color: 'var(--green-700)',
+                    fontWeight: 600,
+                  }}
+                >
+                  <MapPin size={12} />
+                  {language === 'hi'
+                    ? 'स्थान सफलतापूर्वक दर्ज हो गया'
+                    : 'Location detected successfully'}
+                </div>
+              )}
+            </div>
+
+            {/* Photo Upload — disabled until location ready */}
+            <div style={{ marginBottom: 22 }}>
+              <label style={{ ...labelStyle, opacity: locationReady ? 1 : 0.5 }}>
+                📸 {t(language, 'uploadPhoto')} *
+              </label>
+              <div style={{ marginTop: 8, position: 'relative' }}>
+                <div
+                  style={{
+                    opacity: locationReady ? 1 : 0.5,
+                    pointerEvents: locationReady ? 'auto' : 'none',
+                  }}
+                >
+                  <PhotoUploader
+                    onFileSelected={handleFileSelected}
+                    preview={preview}
+                    onClear={() => {
+                      setPhotoFile(null);
+                      setPreview(null);
+                    }}
+                    uploading={uploading}
+                  />
+                </div>
+
+                {!locationReady && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.78rem',
+                      color: 'var(--gray-600)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {gps.loading ? (
+                      <>
+                        <Loader2 size={12} className="spin" />
+                        {language === 'hi'
+                          ? 'स्थान का पता लगाया जा रहा है… फोटो अपलोड करने के लिए कृपया प्रतीक्षा करें'
+                          : 'Detecting location… please wait before uploading a photo'}
+                      </>
+                    ) : (
+                      <>
+                        <MapPin size={12} />
+                        {language === 'hi'
+                          ? 'फोटो अपलोड करने के लिए पहले स्थान दर्ज होना आवश्यक है'
+                          : 'Location must be detected before uploading a photo'}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -427,20 +514,20 @@ export const GreenDepartmentPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={submitting || uploading}
+              disabled={submitting || uploading || !locationReady}
               style={{
                 width: '100%',
                 padding: '14px 0',
                 borderRadius: 'var(--radius-md)',
                 border: 'none',
                 background:
-                  submitting || uploading
+                  submitting || uploading || !locationReady
                     ? 'var(--gray-300)'
                     : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                 color: '#fff',
                 fontWeight: 800,
                 fontSize: '1rem',
-                cursor: submitting || uploading ? 'not-allowed' : 'pointer',
+                cursor: submitting || uploading || !locationReady ? 'not-allowed' : 'pointer',
                 boxShadow: '0 6px 20px rgba(102,0,51,0.3)',
                 display: 'flex',
                 alignItems: 'center',
@@ -451,6 +538,10 @@ export const GreenDepartmentPage: React.FC = () => {
               <Recycle size={18} />
               {submitting
                 ? 'Submitting…'
+                : !locationReady
+                ? language === 'hi'
+                  ? 'स्थान दर्ज होने की प्रतीक्षा…'
+                  : 'Waiting for location…'
                 : language === 'hi'
                 ? '📤 हरित कचरा उठाने हेतु अनुरोध भेजें'
                 : '📤 Request Green Waste Pickup'}
@@ -477,7 +568,9 @@ export const GreenDepartmentPage: React.FC = () => {
               }}
             >
               <p style={{ fontSize: 36, marginBottom: 8 }}>🌿</p>
-              <p style={{ fontWeight: 600 }}>{language === 'hi' ? 'अभी कोई शिकायत नहीं है' : 'No green complaints recorded yet'}</p>
+              <p style={{ fontWeight: 600 }}>
+                {language === 'hi' ? 'अभी कोई शिकायत नहीं है' : 'No green complaints recorded yet'}
+              </p>
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
