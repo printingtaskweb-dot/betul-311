@@ -9,7 +9,7 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { LocationPicker } from '../components/common/LocationPicker';
 import { BottomNav } from '../components/BottomNav';
 import type { Department } from '../lib/supabase';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MapPin, Loader2 } from 'lucide-react';
 
 export const ComplaintForm: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -30,8 +30,14 @@ export const ComplaintForm: React.FC = () => {
   const [ticket, setTicket] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Location must be detected before anything else can be filled
-  const locationReady = loc.latitude != null && loc.longitude != null;
+  // Location is considered "ready" only when we have coordinates
+  const locationReady = !!loc.latitude && !!loc.longitude;
+
+  // 🔹 Auto-detect location on mount (no manual button needed)
+  useEffect(() => {
+    loc.detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pre-select dept from URL
   useEffect(() => {
@@ -42,29 +48,32 @@ export const ComplaintForm: React.FC = () => {
     }
   }, [searchParams, departments]);
 
-  // If location is lost/reset, clear any error that was about location
+  // 🔹 If location gets cleared, drop any attached photo
   useEffect(() => {
-    if (locationReady) setError(null);
-  }, [locationReady]);
+    if (!locationReady && photoFile) {
+      setPhotoFile(null);
+      setPreview(null);
+    }
+  }, [locationReady, photoFile]);
 
   const handleFileSelected = (file: File) => {
-    if (!locationReady) return; // safety: no photo before location
+    if (!locationReady) return; // guard
     setPhotoFile(file);
     setPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!selectedDept) {
+      return setError(language === 'hi' ? 'कृपया विभाग का चयन करें।' : 'Please select a department.');
+    }
+    // Location check BEFORE photo check
     if (!locationReady) {
       return setError(
         language === 'hi'
-          ? 'कृपया पहले अपना स्थान दर्ज करें।'
-          : 'Please detect your location first.'
+          ? 'कृपया पहले अपना स्थान स्वतः दर्ज होने दें।'
+          : 'Please wait for your location to be auto-detected.'
       );
-    }
-    if (!selectedDept) {
-      return setError(language === 'hi' ? 'कृपया विभाग का चयन करें।' : 'Please select a department.');
     }
     if (!photoFile) {
       return setError(language === 'hi' ? 'कृपया समस्या का फोटो अपलोड करें।' : 'Please attach a photo.');
@@ -181,8 +190,6 @@ export const ComplaintForm: React.FC = () => {
     );
   }
 
-  const submitDisabled = !locationReady || submitting || uploading;
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--gray-50)', paddingBottom: 90 }}>
       {/* Header */}
@@ -234,10 +241,65 @@ export const ComplaintForm: React.FC = () => {
             boxShadow: 'var(--shadow-sm)',
           }}
         >
-          {/* STEP 1: Location (always active) */}
+          {/* Department selector */}
           <div style={{ marginBottom: 22 }}>
             <label style={labelStyle}>
-              📍 {language === 'hi' ? 'चरण 1:' : 'Step 1:'} {t(language, 'detectLocation')} *
+              🏢 {t(language, 'selectDept')} *
+            </label>
+            {deptsLoading ? (
+              <div className="shimmer" style={{ height: 48, borderRadius: 10, marginTop: 8 }} />
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                  gap: 8,
+                  marginTop: 10,
+                }}
+              >
+                {departments.map((dept) => {
+                  const isSelected = selectedDept?.id === dept.id;
+                  return (
+                    <button
+                      key={dept.id}
+                      type="button"
+                      onClick={() => setSelectedDept(dept)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '10px 6px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: isSelected ? `2px solid ${dept.color}` : '1.5px solid var(--gray-200)',
+                        background: isSelected ? `${dept.color}15` : '#fff',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)',
+                      }}
+                    >
+                      <span style={{ fontSize: 22 }}>{dept.icon}</span>
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: isSelected ? 800 : 600,
+                          color: isSelected ? dept.color : 'var(--gray-700)',
+                          textAlign: 'center',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {dept.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Location — moved ABOVE photo, auto-detected on mount */}
+          <div style={{ marginBottom: 22 }}>
+            <label style={labelStyle}>
+              📍 {t(language, 'detectLocation')} *
             </label>
             <div style={{ marginTop: 8 }}>
               <LocationPicker
@@ -250,104 +312,38 @@ export const ComplaintForm: React.FC = () => {
                 onDetect={loc.detectLocation}
               />
             </div>
-
-            {!locationReady && (
+            {locationReady && !loc.loading && (
               <div
                 style={{
-                  marginTop: 10,
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: '#fef3c7',
-                  border: '1px solid #fde68a',
-                  color: '#92400e',
-                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 8,
+                  fontSize: '0.78rem',
+                  color: 'var(--green-700)',
                   fontWeight: 600,
                 }}
               >
-                🔒{' '}
+                <MapPin size={12} />
                 {language === 'hi'
-                  ? 'फोटो लेने और विवरण भरने के लिए पहले अपना स्थान दर्ज करें।'
-                  : 'Detect your location first to unlock photo and other details.'}
+                  ? 'स्थान सफलतापूर्वक दर्ज हो गया'
+                  : 'Location detected successfully'}
               </div>
             )}
           </div>
 
-          {/* STEP 2: Everything else (locked until location is ready) */}
-          <fieldset
-            disabled={!locationReady}
-            aria-disabled={!locationReady}
-            style={{
-              border: 'none',
-              padding: 0,
-              margin: 0,
-              minWidth: 0,
-              opacity: locationReady ? 1 : 0.45,
-              pointerEvents: locationReady ? 'auto' : 'none',
-              filter: locationReady ? 'none' : 'grayscale(0.6)',
-              transition: 'opacity 0.25s ease',
-            }}
-          >
-            {/* Department selector */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={labelStyle}>
-                🏢 {t(language, 'selectDept')} *
-              </label>
-              {deptsLoading ? (
-                <div className="shimmer" style={{ height: 48, borderRadius: 10, marginTop: 8 }} />
-              ) : (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                    gap: 8,
-                    marginTop: 10,
-                  }}
-                >
-                  {departments.map((dept) => {
-                    const isSelected = selectedDept?.id === dept.id;
-                    return (
-                      <button
-                        key={dept.id}
-                        type="button"
-                        onClick={() => setSelectedDept(dept)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 4,
-                          padding: '10px 6px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: isSelected ? `2px solid ${dept.color}` : '1.5px solid var(--gray-200)',
-                          background: isSelected ? `${dept.color}15` : '#fff',
-                          cursor: 'pointer',
-                          transition: 'var(--transition)',
-                        }}
-                      >
-                        <span style={{ fontSize: 22 }}>{dept.icon}</span>
-                        <span
-                          style={{
-                            fontSize: '0.78rem',
-                            fontWeight: isSelected ? 800 : 600,
-                            color: isSelected ? dept.color : 'var(--gray-700)',
-                            textAlign: 'center',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {dept.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Photo */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={labelStyle}>
-                📸 {t(language, 'uploadPhoto')} *
-              </label>
-              <div style={{ marginTop: 8 }}>
+          {/* Photo — disabled until location ready */}
+          <div style={{ marginBottom: 22 }}>
+            <label style={{ ...labelStyle, opacity: locationReady ? 1 : 0.5 }}>
+              📸 {t(language, 'uploadPhoto')} *
+            </label>
+            <div style={{ marginTop: 8, position: 'relative' }}>
+              <div
+                style={{
+                  opacity: locationReady ? 1 : 0.5,
+                  pointerEvents: locationReady ? 'auto' : 'none',
+                }}
+              >
                 <PhotoUploader
                   onFileSelected={handleFileSelected}
                   preview={preview}
@@ -358,47 +354,77 @@ export const ComplaintForm: React.FC = () => {
                   uploading={uploading}
                 />
               </div>
-            </div>
 
-            {/* Description */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={labelStyle}>
-                📝 {t(language, 'description')} *
-              </label>
-              <textarea
-                placeholder={
-                  language === 'hi'
-                    ? 'समस्या का स्पष्ट विवरण दें (उदा. वार्ड 12 में मुख्य सड़क पर कचरा जमा है)...'
-                    : 'Describe the issue clearly with landmark details…'
-                }
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                style={{ ...inputStyle, marginTop: 8, resize: 'vertical' }}
+              {!locationReady && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.78rem',
+                    color: 'var(--gray-600)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {loc.loading ? (
+                    <>
+                      <Loader2 size={12} className="spin" />
+                      {language === 'hi'
+                        ? 'स्थान का पता लगाया जा रहा है… फोटो अपलोड करने के लिए कृपया प्रतीक्षा करें'
+                        : 'Detecting location… please wait before uploading a photo'}
+                    </>
+                  ) : (
+                    <>
+                      <MapPin size={12} />
+                      {language === 'hi'
+                        ? 'फोटो अपलोड करने के लिए पहले स्थान दर्ज होना आवश्यक है'
+                        : 'Location must be detected before uploading a photo'}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div style={{ marginBottom: 22 }}>
+            <label style={labelStyle}>
+              📝 {t(language, 'description')} *
+            </label>
+            <textarea
+              placeholder={
+                language === 'hi'
+                  ? 'समस्या का स्पष्ट विवरण दें (उदा. वार्ड 12 में मुख्य सड़क पर कचरा जमा है)...'
+                  : 'Describe the issue clearly with landmark details…'
+              }
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              style={{ ...inputStyle, marginTop: 8, resize: 'vertical' }}
+            />
+          </div>
+
+          {/* Contact Details */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>
+              👤 {t(language, 'yourDetails')} ({t(language, 'optional')})
+            </label>
+            <div className="two-col-responsive" style={{ marginTop: 8 }}>
+              <input
+                placeholder={t(language, 'name')}
+                value={citizenName}
+                onChange={(e) => setCitizenName(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                placeholder={t(language, 'phone')}
+                value={citizenPhone}
+                onChange={(e) => setCitizenPhone(e.target.value)}
+                style={inputStyle}
               />
             </div>
-
-            {/* Contact Details (Responsive 2 columns) */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>
-                👤 {t(language, 'yourDetails')} ({t(language, 'optional')})
-              </label>
-              <div className="two-col-responsive" style={{ marginTop: 8 }}>
-                <input
-                  placeholder={t(language, 'name')}
-                  value={citizenName}
-                  onChange={(e) => setCitizenName(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  placeholder={t(language, 'phone')}
-                  value={citizenPhone}
-                  onChange={(e) => setCitizenPhone(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-          </fieldset>
+          </div>
 
           {error && (
             <div
@@ -419,24 +445,31 @@ export const ComplaintForm: React.FC = () => {
 
           <button
             type="submit"
-            disabled={submitDisabled}
+            disabled={submitting || uploading || !locationReady}
             style={{
               width: '100%',
               padding: '14px 0',
               borderRadius: 'var(--radius-md)',
               border: 'none',
-              background: submitDisabled
-                ? 'var(--gray-300)'
-                : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
+              background:
+                submitting || uploading || !locationReady
+                  ? 'var(--gray-300)'
+                  : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
               color: '#fff',
               fontWeight: 800,
               fontSize: '1rem',
-              cursor: submitDisabled ? 'not-allowed' : 'pointer',
+              cursor: submitting || uploading || !locationReady ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 16px rgba(102,0,51,0.3)',
               transition: 'var(--transition)',
             }}
           >
-            {submitting ? 'Submitting…' : `📤 ${t(language, 'submit')}`}
+            {submitting
+              ? 'Submitting…'
+              : !locationReady
+              ? language === 'hi'
+                ? 'स्थान दर्ज होने की प्रतीक्षा…'
+                : 'Waiting for location…'
+              : `📤 ${t(language, 'submit')}`}
           </button>
         </form>
       </div>
