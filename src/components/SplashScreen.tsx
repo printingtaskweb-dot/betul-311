@@ -78,7 +78,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
           animation: 'splash-pulse 2s ease-in-out infinite, splash-logo-pop 0.8s ease forwards',
         }}>
           <img
-            src="/logo.jpeg"
+            src="/logo.png"
             alt="IMC 311 Logo"
             style={{
               width: '100%',
