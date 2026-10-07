@@ -44,7 +44,7 @@ const SERVICES: Service[] = [
   },
   {
     slug: 'clean',
-    icon: '🧹',
+    image: '/cleaning.png',
     gradient: 'linear-gradient(135deg, #065f46, #059669)',
     shadow: 'rgba(5,150,105,0.3)',
     route: '/complaint/new?dept=clean',
