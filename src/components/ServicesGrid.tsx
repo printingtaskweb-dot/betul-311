@@ -37,7 +37,7 @@ const SERVICES: Service[] = [
   },
   {
     slug: 'cnd',
-    icon: '🏗️',
+    image: '/C&D.png',
     gradient: 'linear-gradient(135deg, #92400e, #b45309)',
     shadow: 'rgba(180,83,9,0.3)',
     route: '/complaint/new?dept=cnd',
