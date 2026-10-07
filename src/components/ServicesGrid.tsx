@@ -3,10 +3,19 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { t } from '../lib/i18n';
 
-const SERVICES = [
+type Service = {
+  slug: string;
+  icon?: string;      // emoji fallback / default
+  image?: string;     // 👈 custom image path (takes priority if present)
+  gradient: string;
+  shadow: string;
+  route: string;
+};
+
+const SERVICES: Service[] = [
   {
     slug: 'green',
-    icon: '🌿',
+    image: '/green.png', // 👈 served from public/green.png
     gradient: 'linear-gradient(135deg, #166534, #16a34a)',
     shadow: 'rgba(22,163,74,0.3)',
     route: '/department/green',
@@ -131,9 +140,23 @@ export const ServicesGrid: React.FC = () => {
                     fontSize: 'clamp(20px, 2vw, 24px)',
                     boxShadow: `0 6px 16px ${svc.shadow}`,
                     flexShrink: 0,
+                    overflow: 'hidden', // 👈 ensures image stays inside circle
                   }}
                 >
-                  {svc.icon}
+                  {svc.image ? (
+                    <img
+                      src={svc.image}
+                      alt={label}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    svc.icon
+                  )}
                 </div>
                 <span
                   style={{
