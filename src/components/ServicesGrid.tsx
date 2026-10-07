@@ -5,8 +5,8 @@ import { t } from '../lib/i18n';
 
 type Service = {
   slug: string;
-  icon?: string;      // emoji fallback / default
-  image?: string;     // custom image path (takes priority if present)
+  icon?: string;
+  image?: string;
   gradient: string;
   shadow: string;
   route: string;
@@ -15,7 +15,7 @@ type Service = {
 const SERVICES: Service[] = [
   {
     slug: 'green',
-    image: '/green.png', // served from public/green.png
+    image: '/green.png',
     gradient: 'linear-gradient(135deg, #166534, #16a34a)',
     shadow: 'rgba(22,163,74,0.3)',
     route: '/department/green',
@@ -113,39 +113,47 @@ export const ServicesGrid: React.FC = () => {
           const isImageCard = !!svc.image;
 
           return (
-            <Link key={svc.slug} to={svc.route} style={{ textDecoration: 'none' }}>
-              <div
-                className="card-hover"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: 'clamp(10px, 1.5vw, 16px) 6px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--theme-component, #d9d9d9)',
-                  border: '1.5px solid var(--theme-component-border, #bfbfbf)',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  height: '100%',
-                }}
-              >
-                {isImageCard ? (
-                  /* ── Square image card (green service) ── */
-                  <img
-                    src={svc.image}
-                    alt={label}
-                    style={{
-                      width: 'clamp(52px, 5vw, 64px)',
-                      height: 'clamp(52px, 5vw, 64px)',
-                      objectFit: 'cover',
-                      borderRadius: 8,
-                      display: 'block',
-                      flexShrink: 0,
-                    }}
-                  />
-                ) : (
-                  /* ── Round emoji circle (all other services) ── */
+            <Link
+              key={svc.slug}
+              to={svc.route}
+              style={{
+                textDecoration: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {isImageCard ? (
+                /* Pure image — no wrapper, no background, no border */
+                <img
+                  src={svc.image}
+                  alt={label}
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1 / 1',
+                    objectFit: 'cover',
+                    borderRadius: 12,
+                    display: 'block',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              ) : (
+                /* Round emoji circle for all other services */
+                <div
+                  className="card-hover"
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1 / 1',
+                    maxWidth: 'clamp(90px, 22vw, 130px)',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--theme-component, #d9d9d9)',
+                    border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   <div
                     style={{
                       width: 'clamp(42px, 4vw, 52px)',
@@ -157,25 +165,25 @@ export const ServicesGrid: React.FC = () => {
                       justifyContent: 'center',
                       fontSize: 'clamp(20px, 2vw, 24px)',
                       boxShadow: `0 6px 16px ${svc.shadow}`,
-                      flexShrink: 0,
                     }}
                   >
                     {svc.icon}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Label — always below the image/icon */}
-                <span
-                  style={{
-                    fontSize: 'clamp(0.72rem, 0.7rem + 0.1vw, 0.82rem)',
-                    fontWeight: 700,
-                    color: 'var(--gray-800)',
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {label}
-                </span>
-              </div>
+              {/* Label always below */}
+              <span
+                style={{
+                  fontSize: 'clamp(0.72rem, 0.7rem + 0.1vw, 0.82rem)',
+                  fontWeight: 700,
+                  color: 'var(--gray-800)',
+                  lineHeight: 1.25,
+                  textAlign: 'center',
+                }}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}
