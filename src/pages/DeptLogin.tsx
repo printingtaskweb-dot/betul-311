@@ -99,7 +99,13 @@ export default function DeptLogin() {
   useEffect(() => {
     supabase.from('cities').select('id, name, state, district, slug')
       .eq('is_active', true).order('name')
-      .then(({ data }) => setCities((data ?? []) as City[]));
+      .then(({ data, error: e }) => {
+        if (e) {
+          setError((hi ? 'शहर लोड नहीं हुए: ' : 'Could not load cities: ') + e.message);
+          return;
+        }
+        setCities((data ?? []) as City[]);
+      });
   }, []);
 
   useEffect(() => {
@@ -148,7 +154,10 @@ export default function DeptLogin() {
 
   const manualCities = MANUAL_CITIES.map(m => ({
     ...m,
-    dbCity: cities.find(c => (c.name || '').trim().toLowerCase() === m.key) || null,
+    dbCity: cities.find(c =>
+      (c.name || '').trim().toLowerCase() === m.key ||
+      (c.slug || '').trim().toLowerCase() === m.key,
+    ) || null,
   }));
 
   const isDeptRole = roleKey.startsWith('dept:');
