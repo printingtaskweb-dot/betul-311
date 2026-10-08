@@ -83,7 +83,7 @@ export default function DeptLogin() {
       'dept_staff','admin','department_head','supervisor','control_room',
       'management_viewer','field_employee','municipal_administrator',
     ];
-    if (profile && staffRoles.includes(profile.role)) {
+    if (profile?.role && staffRoles.includes(profile.role)) {
       navigate('/dept/dashboard', { replace: true });
     } else if (profile?.role === 'pending_staff') {
       setMode('pending');
@@ -143,7 +143,7 @@ export default function DeptLogin() {
         'management_viewer','field_employee','municipal_administrator',
       ];
 
-      if (userProf && staffRoles.includes(userProf.role)) {
+      if (userProf?.role && staffRoles.includes(userProf.role)) {
         navigate('/dept/dashboard');
       } else if (userProf?.role === 'pending_staff') {
         setMode('pending');
