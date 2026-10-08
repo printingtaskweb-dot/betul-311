@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { t } from '../../lib/i18n';
 
 interface Props {
