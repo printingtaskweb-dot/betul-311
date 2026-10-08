@@ -6,7 +6,7 @@ import {
   Building2, Mail, LogIn, ShieldCheck, ArrowRight,
   User, Phone, ChevronDown, Clock, CheckCircle,
   ArrowUpCircle, LogOut, Search, MapPin, X, BadgeCheck,
-  AlertCircle,
+  AlertCircle, Briefcase,
 } from 'lucide-react';
 
 import { FormInput } from '../components/auth/FormInput';
@@ -15,6 +15,15 @@ import { AlertBanner } from '../components/auth/AlertBanner';
 
 interface Department { id: string; name: string; slug: string; icon: string; }
 interface City { id: string; name: string; state: string | null; slug: string | null; }
+interface Designation {
+  id: string;
+  department_id: string;
+  tier: number;
+  name: string;
+  name_hi: string | null;
+  maps_to_role: string;
+  scope_description: string | null;
+}
 interface StaffMatch {
   id: string;
   full_name: string | null;
@@ -27,22 +36,19 @@ interface StaffMatch {
   supervisor_id: string | null;
 }
 
-const REQUESTABLE_ROLES = [
-  { value: 'department_head',   label: 'Department Head',   needsSupervisor: false, color: '#7c3aed' },
-  { value: 'supervisor',        label: 'Supervisor',        needsSupervisor: true,  color: '#2563eb' },
-  { value: 'control_room',      label: 'Control Room',      needsSupervisor: true,  color: '#0891b2' },
-  { value: 'management_viewer', label: 'Management Viewer', needsSupervisor: true,  color: '#db2777' },
-  { value: 'field_employee',    label: 'Field Employee',    needsSupervisor: true,  color: '#16a34a' },
-  { value: 'dept_staff',        label: 'Department Staff',  needsSupervisor: true,  color: '#ca8a04' },
-];
-
 type Mode = 'login' | 'register' | 'upgrade' | 'pending';
+
+const TIER_LABELS: Record<number, string> = {
+  1: 'Department Head',
+  2: 'Area Officer',
+  3: 'Supervisor',
+  4: 'Operational Staff',
+};
 
 export default function DeptLogin() {
   const { user, profile, refreshProfile, signOut, language: rawLang } = useAuth();
   const navigate = useNavigate();
 
-  // Normalize language to a strict union type
   const language: 'en' | 'hi' = rawLang === 'hi' ? 'hi' : 'en';
   const hi = language === 'hi';
 
@@ -58,9 +64,10 @@ export default function DeptLogin() {
 
   const [cities, setCities]             = useState<City[]>([]);
   const [departments, setDepartments]   = useState<Department[]>([]);
+  const [designations, setDesignations] = useState<Designation[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
-  const [selectedRole, setSelectedRole] = useState('field_employee');
+  const [selectedDesig, setSelectedDesig] = useState<Designation | null>(null);
   const [supervisor, setSupervisor]     = useState<StaffMatch | null>(null);
 
   const [searchTerm, setSearchTerm]       = useState('');
@@ -77,6 +84,15 @@ export default function DeptLogin() {
       .then(({ data }) => setDepartments(data ?? []));
   }, []);
 
+  // Load designations when department changes
+  useEffect(() => {
+    if (!selectedDept) { setDesignations([]); setSelectedDesig(null); return; }
+    supabase.rpc('list_designations', { dept_id: selectedDept })
+      .then(({ data }) => setDesignations((data ?? []) as Designation[]));
+    setSelectedDesig(null);
+    setSupervisor(null);
+  }, [selectedDept]);
+
   useEffect(() => {
     if (!user) return;
     const staffRoles = [
@@ -90,14 +106,21 @@ export default function DeptLogin() {
     } else {
       setMode('upgrade');
       setEmail(user.email || '');
-      if (profile?.full_name) setFullName(profile.full_name);
-      if (profile?.phone) setPhone(profile.phone);
+      setFullName(profile?.full_name ?? '');
+      setPhone(profile?.phone ?? '');
     }
   }, [user, profile, navigate]);
 
   const labelStyle: React.CSSProperties = {
     display: 'block', fontWeight: 700, fontSize: '0.82rem',
     marginBottom: 6, color: 'var(--gray-700)',
+  };
+
+  const selectStyle: React.CSSProperties = {
+    width: '100%', padding: '11px 36px 11px 40px',
+    border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+    fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
+    appearance: 'none', cursor: 'pointer',
   };
 
   const runSearch = async () => {
@@ -148,8 +171,8 @@ export default function DeptLogin() {
       } else if (userProf?.role === 'pending_staff') {
         setMode('pending');
       } else {
-        if (userProf?.full_name) setFullName(userProf.full_name);
-        if (userProf?.phone) setPhone(userProf.phone);
+        setFullName(userProf?.full_name ?? '');
+        setPhone(userProf?.phone ?? '');
         setMode('upgrade');
         setError(hi
           ? 'आपका खाता नागरिक के रूप में है। कृपया नीचे फॉर्म भरकर स्टाफ में जुड़ें।'
@@ -162,12 +185,13 @@ export default function DeptLogin() {
 
   const submitRegistration = async (isNewAccount: boolean) => {
     setError('');
-    const roleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
-    if (!roleConf) { setError('Invalid role'); return; }
 
     if (!selectedCity) { setError(hi ? 'कृपया शहर चुनें' : 'Please select your city'); return; }
     if (!selectedDept) { setError(hi ? 'कृपया विभाग चुनें' : 'Please select your department'); return; }
-    if (roleConf.needsSupervisor && !supervisor) {
+    if (!selectedDesig) { setError(hi ? 'कृपया पद चुनें' : 'Please select your designation'); return; }
+
+    const needsSupervisor = selectedDesig.tier !== 1;
+    if (needsSupervisor && !supervisor) {
       setError(hi ? 'कृपया सुपरवाइज़र खोजें और चुनें' : 'Please search and select your supervisor');
       return;
     }
@@ -212,19 +236,22 @@ export default function DeptLogin() {
         phone: phone.trim() || profile?.phone || null,
         language,
         role: 'pending_staff',
-        linked_department_id: selectedDept || null,
-        city_id: selectedCity || null,
+        linked_department_id: selectedDept,
+        city_id: selectedCity,
         supervisor_id: supervisor?.id || null,
+        designation_id: selectedDesig.id,
       });
       if (upsertErr) throw upsertErr;
 
       await supabase.rpc('register_as_staff', {
-        target_role: selectedRole,
-        department_id: selectedDept || null,
-        city_id: selectedCity || null,
+        target_role: selectedDesig.maps_to_role,
+        department_id: selectedDept,
+        city_id: selectedCity,
         supervisor_id: supervisor?.id || null,
         full_name: fullName.trim() || null,
         phone: phone.trim() || null,
+        designation_id: selectedDesig.id,
+        zone_id: null,
       });
 
       await refreshProfile();
@@ -241,11 +268,9 @@ export default function DeptLogin() {
     await signOut();
     setMode('login');
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
-    setSelectedCity(''); setSelectedDept(''); setSelectedRole('field_employee');
+    setSelectedCity(''); setSelectedDept(''); setSelectedDesig(null);
     setSupervisor(null); setError('');
   };
-
-  const selectedRoleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
 
   // ───────────── PENDING SCREEN ─────────────
   if (mode === 'pending') {
@@ -284,15 +309,17 @@ export default function DeptLogin() {
                 <p style={{ margin: '0 0 4px', fontWeight: 800, fontSize: '0.85rem', color: '#15803d' }}>
                   {hi ? 'आवेदन सारांश' : 'Application Summary'}
                 </p>
+                {selectedDesig && (
+                  <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
+                    {hi ? 'पद:' : 'Designation:'} <b>{hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}</b>
+                  </p>
+                )}
                 {supervisor && (
                   <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
                     {hi ? 'सुपरवाइज़र:' : 'Supervisor:'} <b>{supervisor.full_name}</b>
                     {supervisor.staff_code ? ` (${supervisor.staff_code})` : ''}
                   </p>
                 )}
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#065f46' }}>
-                  {hi ? 'भूमिका:' : 'Role:'} <b>{selectedRoleConf?.label}</b>
-                </p>
               </div>
             </div>
           </div>
@@ -321,37 +348,11 @@ export default function DeptLogin() {
   const renderRegistrationFields = () => (
     <>
       <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>🎯 {hi ? 'आप किस भूमिका में जुड़ना चाहते हैं?' : 'Which role are you joining as?'}</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {REQUESTABLE_ROLES.map(r => (
-            <button key={r.value} type="button"
-              onClick={() => { setSelectedRole(r.value); setSupervisor(null); setError(''); }}
-              style={{
-                padding: '9px 10px', borderRadius: 'var(--radius-md)',
-                border: selectedRole === r.value ? `2px solid ${r.color}` : '1.5px solid var(--gray-200)',
-                background: selectedRole === r.value ? `${r.color}11` : '#fff',
-                color: selectedRole === r.value ? r.color : 'var(--gray-700)',
-                fontWeight: selectedRole === r.value ? 800 : 600,
-                fontSize: '0.78rem', cursor: 'pointer', textAlign: 'left',
-              }}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>🏙️ {hi ? 'शहर चुनें *' : 'Select City *'}</label>
         <div style={{ position: 'relative' }}>
           <MapPin size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} required
-            style={{
-              width: '100%', padding: '11px 36px 11px 40px',
-              border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-              fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
-              appearance: 'none', cursor: 'pointer',
-              color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)',
-            }}>
+            style={{ ...selectStyle, color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)' }}>
             <option value="" disabled>{hi ? '— शहर चुनें —' : '— Select City —'}</option>
             {cities.map(c => (
               <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
@@ -366,13 +367,7 @@ export default function DeptLogin() {
         <div style={{ position: 'relative' }}>
           <Building2 size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
           <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)} required
-            style={{
-              width: '100%', padding: '11px 36px 11px 40px',
-              border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-              fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
-              appearance: 'none', cursor: 'pointer',
-              color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)',
-            }}>
+            style={{ ...selectStyle, color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)' }}>
             <option value="" disabled>{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
             {departments.map(d => (
               <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
@@ -382,9 +377,40 @@ export default function DeptLogin() {
         </div>
       </div>
 
-      {selectedRoleConf?.needsSupervisor && (
+      {selectedDept && designations.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>👨‍💼 {hi ? 'सुपरवाइज़र खोजें *' : 'Find your Supervisor *'}</label>
+          <label style={labelStyle}>🎯 {hi ? 'पद / डेज़िग्नेशन चुनें *' : 'Select Designation *'}</label>
+          <div style={{ position: 'relative' }}>
+            <Briefcase size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            <select
+              value={selectedDesig?.id ?? ''}
+              onChange={e => {
+                const d = designations.find(x => x.id === e.target.value);
+                setSelectedDesig(d ?? null);
+                setSupervisor(null);
+              }}
+              required
+              style={{ ...selectStyle, color: selectedDesig ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+              <option value="" disabled>{hi ? '— पद चुनें —' : '— Select Designation —'}</option>
+              {designations.map(d => (
+                <option key={d.id} value={d.id}>
+                  {TIER_LABELS[d.tier]} — {hi && d.name_hi ? d.name_hi : d.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          </div>
+          {selectedDesig?.scope_description && (
+            <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+              {selectedDesig.scope_description}
+            </p>
+          )}
+        </div>
+      )}
+
+      {selectedDesig && selectedDesig.tier !== 1 && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>👨‍💼 {hi ? 'रिपोर्टिंग अधिकारी खोजें *' : 'Find your Reporting Officer *'}</label>
 
           {supervisor ? (
             <div style={{
@@ -437,7 +463,7 @@ export default function DeptLogin() {
               </div>
 
               <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
-                💡 {hi ? 'सुपरवाइज़र का स्टाफ कोड पता हो तो सीधे खोजें।' : 'Know the staff code? Search directly to skip city/dept.'}
+                💡 {hi ? 'अपने सीनियर का स्टाफ कोड पता हो तो सीधे खोजें।' : 'Know your senior\'s staff code? Search directly.'}
               </p>
 
               {searchResults.length > 0 && (
@@ -488,7 +514,7 @@ export default function DeptLogin() {
       />
       <FormInput
         icon={Phone}
-        placeholder={hi ? 'मोबाइल नंबर' : 'Phone Number'}
+        placeholder={hi ? 'मोबाइल नंबर' : 'Mobile Number'}
         value={phone}
         onChange={e => setPhone(e.target.value)}
       />
