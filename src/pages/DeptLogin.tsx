@@ -40,6 +40,13 @@ type Stage = 'account' | 'city' | 'role' | 'level' | 'officer' | 'details' | 'pe
 
 const PRIORITY_CITIES = ['betul', 'bhopal', 'chhindwara', 'indore'];
 
+const MANUAL_CITIES = [
+  { key: 'indore',     name: 'Indore',     nameHi: 'इंदौर' },
+  { key: 'bhopal',     name: 'Bhopal',     nameHi: 'भोपाल' },
+  { key: 'betul',      name: 'Betul',      nameHi: 'बैतूल' },
+  { key: 'chhindwara', name: 'Chhindwara', nameHi: 'छिंदवाड़ा' },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -139,6 +146,11 @@ export default function DeptLogin() {
     return (a.name || '').localeCompare(b.name || '');
   });
 
+  const manualCities = MANUAL_CITIES.map(m => ({
+    ...m,
+    dbCity: cities.find(c => (c.name || '').trim().toLowerCase() === m.key) || null,
+  }));
+
   const isDeptRole = roleKey.startsWith('dept:');
 
   const needsOfficer = (() => {
@@ -168,7 +180,7 @@ export default function DeptLogin() {
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
-      setError(hi ? 'आपके ब्राउज़र में लोकेशन उपलब्ध नहीं है' : 'Geolocation not supported');
+      setError(hi ? 'लोकेशन उपलब्ध नहीं है — कृपया शहर खुद चुनें' : 'Location not available — please select your city manually');
       return;
     }
     setGeoLoading(true);
@@ -185,7 +197,7 @@ export default function DeptLogin() {
         setGeoLoading(false);
       },
       () => {
-        setError(hi ? 'लोकेशन की अनुमति नहीं मिली' : 'Location permission denied');
+        setError(hi ? 'लोकेशन नहीं मिली — कृपया शहर खुद चुनें' : 'Could not detect location — please select your city manually');
         setGeoLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -473,29 +485,44 @@ export default function DeptLogin() {
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                {sortedCities.filter(c => PRIORITY_CITIES.indexOf((c.name || '').toLowerCase()) >= 0).map(c => (
-                  <button key={c.id} type="button" onClick={() => setSelectedCity(c.id)}
-                    style={{
-                      padding: '16px 12px',
-                      border: selectedCity === c.id ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
-                      borderRadius: 'var(--radius-md)',
-                      background: selectedCity === c.id ? '#f0fdf4' : '#fff',
-                      cursor: 'pointer', textAlign: 'left',
-                    }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <MapPin size={16} color={selectedCity === c.id ? '#16a34a' : '#9ca3af'} />
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: selectedCity === c.id ? '#15803d' : 'var(--gray-800)' }}>
-                          {c.name}
-                        </p>
-                        {c.state && (
-                          <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--gray-500)' }}>{c.state}</p>
-                        )}
+                {manualCities.map(m => {
+                  const id = m.dbCity ? m.dbCity.id : '';
+                  const active = !!id && selectedCity === id;
+                  const missing = !m.dbCity;
+                  return (
+                    <button key={m.key} type="button"
+                      disabled={missing}
+                      onClick={() => { if (id) { setSelectedCity(id); setError(''); } }}
+                      style={{
+                        padding: '16px 12px',
+                        border: active ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
+                        borderRadius: 'var(--radius-md)',
+                        background: active ? '#f0fdf4' : '#fff',
+                        cursor: missing ? 'not-allowed' : 'pointer',
+                        opacity: missing ? 0.5 : 1,
+                        textAlign: 'left',
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <MapPin size={16} color={active ? '#16a34a' : '#9ca3af'} />
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: active ? '#15803d' : 'var(--gray-800)' }}>
+                            {hi ? m.nameHi : m.name}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--gray-500)' }}>
+                            {m.dbCity?.state || 'Madhya Pradesh'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
+
+              {cities.length > 0 && manualCities.some(m => !m.dbCity) && (
+                <p style={{ margin: '0 0 12px', fontSize: '0.72rem', color: '#b45309' }}>
+                  {hi ? 'कुछ शहर डेटाबेस में सक्रिय नहीं हैं।' : 'Some cities are not active in the database.'}
+                </p>
+              )}
 
               {sortedCities.filter(c => PRIORITY_CITIES.indexOf((c.name || '').toLowerCase()) < 0).length > 0 && (
                 <div style={{ marginBottom: 12 }}>
