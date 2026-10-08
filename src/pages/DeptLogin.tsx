@@ -26,11 +26,6 @@ interface Designation {
   maps_to_role: string | null;
   scope_description: string | null;
 }
-interface AuthorityRole {
-  code: string; name: string; name_hi: string | null; rank: number;
-  parent_code: string | null; scope_level: string; maps_to_role: string;
-  can_approve: boolean; can_view_all: boolean; description: string | null;
-}
 interface StaffMatch {
   id: string; full_name: string | null; role: string;
   authority_role: string | null; hierarchy_code: string | null;
@@ -84,7 +79,6 @@ export default function DeptLogin() {
   const [cities, setCities] = useState<City[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
-  const [authorityRoles, setAuthorityRoles] = useState<AuthorityRole[]>([]);
 
   /* ui */
   const [loading, setLoading] = useState(false);
@@ -105,11 +99,6 @@ export default function DeptLogin() {
     supabase.from('departments').select('id, name, slug, icon')
       .eq('is_active', true).order('name')
       .then(({ data }) => setDepartments((data ?? []) as Department[]));
-  }, []);
-
-  useEffect(() => {
-    supabase.rpc('list_hierarchy_roles')
-      .then(({ data }) => setAuthorityRoles((data ?? []) as AuthorityRole[]));
   }, []);
 
   useEffect(() => {
@@ -152,7 +141,6 @@ export default function DeptLogin() {
 
   const isDeptRole = roleKey.startsWith('dept:');
 
-  /* do we need the officer step? */
   const needsOfficer = (() => {
     if (roleKey === 'municipal_commissioner') return false;
     if (roleKey === 'deputy_commissioner')   return true;
@@ -162,7 +150,6 @@ export default function DeptLogin() {
     return true;
   })();
 
-  /* which stages are in the flow */
   const flow: Stage[] = ['account', 'city', 'role'];
   if (isDeptRole) flow.push('level');
   if (needsOfficer) flow.push('officer');
