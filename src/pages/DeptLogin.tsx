@@ -35,14 +35,13 @@ interface StaffMatch {
   supervisor_id: string | null;
 }
 
-// Roles a self-registering user can request
 const REQUESTABLE_ROLES = [
-  { value: 'department_head',      label: 'Department Head',    needsCity: true,  needsDept: true,  needsSupervisor: false, color: '#7c3aed' },
-  { value: 'supervisor',           label: 'Supervisor',         needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#2563eb' },
-  { value: 'control_room',         label: 'Control Room',       needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#0891b2' },
-  { value: 'management_viewer',    label: 'Management Viewer',  needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#db2777' },
-  { value: 'field_employee',       label: 'Field Employee',     needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#16a34a' },
-  { value: 'dept_staff',           label: 'Department Staff',   needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#ca8a04' },
+  { value: 'department_head',   label: 'Department Head',   needsCity: true,  needsDept: true,  needsSupervisor: false, color: '#7c3aed' },
+  { value: 'supervisor',        label: 'Supervisor',        needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#2563eb' },
+  { value: 'control_room',      label: 'Control Room',      needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#0891b2' },
+  { value: 'management_viewer', label: 'Management Viewer', needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#db2777' },
+  { value: 'field_employee',    label: 'Field Employee',    needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#16a34a' },
+  { value: 'dept_staff',        label: 'Department Staff',  needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#ca8a04' },
 ];
 
 export default function DeptLogin() {
@@ -54,7 +53,6 @@ export default function DeptLogin() {
   const [mode, setMode] = useState<Mode>('login');
   const [registerType, setRegisterType] = useState<'existing' | 'new'>('existing');
 
-  // Common fields
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [fullName, setFullName]   = useState('');
@@ -63,7 +61,6 @@ export default function DeptLogin() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState<string | null>(null);
 
-  // Registration chain
   const [cities, setCities]             = useState<City[]>([]);
   const [departments, setDepartments]   = useState<Department[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
@@ -71,32 +68,27 @@ export default function DeptLogin() {
   const [selectedRole, setSelectedRole] = useState('field_employee');
   const [supervisor, setSupervisor]     = useState<StaffMatch | null>(null);
 
-  // Supervisor search
-  const [searchTerm, setSearchTerm]     = useState('');
+  const [searchTerm, setSearchTerm]       = useState('');
   const [searchResults, setSearchResults] = useState<StaffMatch[]>([]);
-  const [searching, setSearching]       = useState(false);
-  const [showSearchBox, setShowSearchBox] = useState(false);
+  const [searching, setSearching]         = useState(false);
 
-  // Load cities
   useEffect(() => {
     supabase.from('cities').select('id, name, state, slug').eq('is_active', true).order('name')
       .then(({ data }) => setCities(data ?? []));
   }, []);
 
-  // Load departments
   useEffect(() => {
     supabase.from('departments').select('id, name, slug, icon').eq('is_active', true).order('name')
       .then(({ data }) => setDepartments(data ?? []));
   }, []);
 
-  // Detect logged-in user
   useEffect(() => {
     if (!user) return;
-
-    if (profile?.role === 'dept_staff' || profile?.role === 'admin' ||
-        profile?.role === 'department_head' || profile?.role === 'supervisor' ||
-        profile?.role === 'control_room' || profile?.role === 'management_viewer' ||
-        profile?.role === 'field_employee' || profile?.role === 'municipal_administrator') {
+    const staffRoles = [
+      'dept_staff','admin','department_head','supervisor','control_room',
+      'management_viewer','field_employee','municipal_administrator'
+    ];
+    if (profile && staffRoles.includes(profile.role)) {
       navigate('/dept/dashboard', { replace: true });
     } else if (profile?.role === 'pending_staff') {
       setMode('pending');
@@ -108,7 +100,6 @@ export default function DeptLogin() {
     }
   }, [user, profile, navigate]);
 
-  // ── STYLES ────────────────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '11px 14px 11px 40px',
     border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
@@ -125,7 +116,6 @@ export default function DeptLogin() {
     marginBottom: 6, color: 'var(--gray-700)',
   };
 
-  // ── SEARCH SUPERVISOR ─────────────────────────────────────────
   const runSearch = async () => {
     if (!searchTerm.trim() && !selectedCity && !selectedDept) {
       setSearchResults([]);
@@ -151,14 +141,12 @@ export default function DeptLogin() {
     setSupervisor(match);
     if (match.city_id) setSelectedCity(match.city_id);
     if (match.department_id) setSelectedDept(match.department_id);
-    setShowSearchBox(false);
     setSearchResults([]);
     setSearchTerm('');
   };
 
   const clearSupervisor = () => setSupervisor(null);
 
-  // ── LOGIN ─────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null); setLoading(true);
@@ -193,10 +181,8 @@ export default function DeptLogin() {
     } finally { setLoading(false); }
   };
 
-  // ── SUBMIT REGISTRATION/UPGRADE ────────────────────────────────
   const submitRegistration = async (isNewAccount: boolean) => {
     setError(null);
-
     const roleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
     if (!roleConf) { setError('Invalid role'); return; }
 
@@ -247,7 +233,6 @@ export default function DeptLogin() {
 
       if (!targetUserId) throw new Error('Could not establish user session');
 
-      // Update base profile
       const { error: upsertErr } = await supabase.from('user_profiles').upsert({
         id: targetUserId,
         email: targetEmail.trim().toLowerCase(),
@@ -261,7 +246,6 @@ export default function DeptLogin() {
       });
       if (upsertErr) throw upsertErr;
 
-      // Log the requested role via RPC (non-fatal if it fails)
       await supabase.rpc('register_as_staff', {
         target_role: selectedRole,
         department_id: selectedDept || null,
@@ -297,7 +281,7 @@ export default function DeptLogin() {
 
   const selectedRoleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
 
-  // ── PENDING SCREEN ────────────────────────────────────────────
+  // ── PENDING SCREEN ───────────────────────────────────────────
   if (mode === 'pending') {
     return (
       <div style={{
@@ -377,7 +361,7 @@ export default function DeptLogin() {
     );
   }
 
-  // ── REUSABLE: ROLE + CITY + DEPT + SUPERVISOR PICKER ──────────
+  // ── REGISTRATION FIELDS (reused in upgrade + register) ──────
   const renderRegistrationFields = () => (
     <>
       {/* Role picker */}
@@ -483,4 +467,527 @@ export default function DeptLogin() {
                   <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#065f46' }}>
                     {supervisor.full_name}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.72rem',
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#15803d' }}>
+                    {supervisor.role.replace(/_/g, ' ')}
+                    {supervisor.staff_code ? ` • ${supervisor.staff_code}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearSupervisor}
+                style={{
+                  border: 'none', background: 'none', cursor: 'pointer',
+                  color: '#16a34a', padding: 4,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={15} style={iconStyle} />
+                  <input
+                    type="text"
+                    placeholder={hi ? 'स्टाफ कोड या नाम से खोजें' : 'Search by staff code or name'}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
+                    style={inputStyle}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={runSearch}
+                  disabled={searching}
+                  style={{
+                    padding: '0 16px', border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: '#fff', fontWeight: 800, fontSize: '0.82rem',
+                    cursor: searching ? 'wait' : 'pointer',
+                  }}
+                >
+                  {searching ? '...' : (hi ? 'खोजें' : 'Find')}
+                </button>
+              </div>
+
+              <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+                {hi
+                  ? '💡 टिप: अपने सुपरवाइज़र का स्टाफ कोड पता हो तो सीधे खोजें।'
+                  : '💡 Tip: If you know your supervisor\'s staff code, search it directly to skip the city/department steps.'}
+              </p>
+
+              {searchResults.length > 0 && (
+                <div style={{
+                  border: '1.5px solid var(--gray-200)',
+                  borderRadius: 'var(--radius-md)',
+                  maxHeight: 220, overflowY: 'auto', background: '#fff',
+                }}>
+                  {searchResults.map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => pickSupervisor(m)}
+                      style={{
+                        width: '100%', padding: '10px 12px', border: 'none',
+                        borderBottom: '1px solid var(--gray-100)',
+                        background: '#fff', cursor: 'pointer', textAlign: 'left',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>
+                          {m.full_name || 'Unnamed Staff'}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+                          {m.role.replace(/_/g, ' ')}
+                          {m.staff_code ? ` • ${m.staff_code}` : ''}
+                          {m.city_name ? ` • ${m.city_name}` : ''}
+                          {m.department_name ? ` • ${m.department_name}` : ''}
+                        </p>
+                      </div>
+                      <ArrowRight size={14} color="var(--gray-400)" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchResults.length === 0 && !searching && searchTerm && (
+                <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                  {hi ? 'कोई परिणाम नहीं मिला।' : 'No matches found.'}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Full name */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>👤 {hi ? 'पूरा नाम' : 'Full Name'}</label>
+        <div style={{ position: 'relative' }}>
+          <User size={15} style={iconStyle} />
+          <input
+            type="text"
+            placeholder={hi ? 'पूरा नाम' : 'Full Name'}
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* Phone */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>📞 {hi ? 'संपर्क नंबर' : 'Phone Number'}</label>
+        <div style={{ position: 'relative' }}>
+          <Phone size={15} style={iconStyle} />
+          <input
+            type="tel"
+            placeholder={hi ? 'मोबाइल नंबर' : 'Phone Number'}
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+    </>
+  );
+
+  // ── UPGRADE VIEW (logged-in citizen) ────────────────────────
+  if (mode === 'upgrade' && user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 16px',
+      }}>
+        <div style={{
+          width: '100%', maxWidth: 480,
+          background: '#fff', borderRadius: 'var(--radius-xl)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #15803d, #16a34a)',
+            padding: '26px 28px', textAlign: 'center',
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 10px',
+            }}>
+              <ArrowUpCircle size={28} color="#fff" />
+            </div>
+            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#fff' }}>
+              {hi ? 'स्टाफ के रूप में जुड़ें' : 'Join as Staff'}
+            </h1>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)' }}>
+              {user.email}
+            </p>
+          </div>
+
+          <form onSubmit={handleUpgradeExisting} style={{ padding: '24px' }}>
+            {error && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                background: '#fef2f2', border: '1px solid #fecaca',
+                color: '#dc2626', fontSize: '0.83rem', fontWeight: 600, marginBottom: 16,
+              }}>
+                {error}
+              </div>
+            )}
+
+            {renderRegistrationFields()}
+
+            {/* Password only needed if not currently signed in */}
+            {!user && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>🔒 {hi ? 'पासवर्ड *' : 'Password *'}</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={iconStyle} />
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    placeholder={hi ? 'पासवर्ड' : 'Password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    style={{ ...inputStyle, paddingRight: 42 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(p => !p)}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%',
+                      transform: 'translateY(-50%)', border: 'none',
+                      background: 'none', cursor: 'pointer', padding: 0,
+                      color: 'var(--gray-400)',
+                    }}
+                  >
+                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px', border: 'none',
+                borderRadius: 'var(--radius-md)',
+                background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                color: '#fff', fontWeight: 800, fontSize: '0.95rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
+              }}
+            >
+              {loading ? (
+                <span className="spinner" style={{ width: 18, height: 18 }} />
+              ) : (
+                <>
+                  <ShieldCheck size={16} />
+                  {hi ? 'आवेदन जमा करें' : 'Submit Application'}
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignOutUser}
+              style={{
+                width: '100%', marginTop: 14, padding: '10px',
+                border: 'none', background: 'none',
+                color: 'var(--gray-500)', fontSize: '0.82rem',
+                cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              <LogOut size={13} />
+              {hi ? 'दूसरे खाते से लॉगिन करें' : 'Use a different account'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── MAIN LOGIN / REGISTER ───────────────────────────────────
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '24px 16px',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 480,
+        background: '#fff', borderRadius: 'var(--radius-xl)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #15803d, #16a34a)',
+          padding: '28px 32px', textAlign: 'center',
+        }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 12px',
+          }}>
+            <Building2 size={28} color="#fff" />
+          </div>
+          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>
+            {hi ? 'विभाग पोर्टल' : 'Department Portal'}
+          </h1>
+          <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.85)' }}>
+            {hi ? 'IMC 311 — नगर निगम विभागीय समाधान' : 'IMC 311 — Municipal Department Console'}
+          </p>
+        </div>
+
+        {/* Tab Switch */}
+        <div style={{ display: 'flex', borderBottom: '2px solid var(--gray-100)' }}>
+          {[
+            { id: 'login',    label: hi ? '🔑 स्टाफ लॉगिन' : '🔑 Staff Login' },
+            { id: 'register', label: hi ? '🏢 स्टाफ के रूप में जुड़ें' : '🏢 Join as Staff' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setMode(tab.id as Mode); setError(null); }}
+              style={{
+                flex: 1, padding: '13px', border: 'none', background: 'none',
+                fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer',
+                color: mode === tab.id ? 'var(--green-700)' : 'var(--gray-400)',
+                borderBottom: mode === tab.id ? '2.5px solid var(--green-600)' : '2.5px solid transparent',
+                transition: 'all 0.2s', marginBottom: -2,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding: '24px' }}>
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 'var(--radius-md)',
+              background: error.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
+              border: `1px solid ${error.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`,
+              color: error.startsWith('✅') ? '#15803d' : '#dc2626',
+              fontSize: '0.83rem', fontWeight: 600, marginBottom: 16,
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* LOGIN MODE */}
+          {mode === 'login' && (
+            <form onSubmit={handleLogin}>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Mail size={15} style={iconStyle} />
+                <input
+                  type="email"
+                  placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ position: 'relative', marginBottom: 20 }}>
+                <Lock size={15} style={iconStyle} />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder={hi ? 'पासवर्ड *' : 'Password *'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  style={{ ...inputStyle, paddingRight: 42 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%',
+                    transform: 'translateY(-50%)', border: 'none',
+                    background: 'none', cursor: 'pointer', padding: 0,
+                    color: 'var(--gray-400)',
+                  }}
+                >
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%', padding: '13px', border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                  color: '#fff', fontWeight: 800, fontSize: '0.95rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
+                }}
+              >
+                {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : <><LogIn size={16} /> {hi ? 'लॉगिन करें' : 'Login to Department'}</>}
+              </button>
+
+              <div style={{ marginTop: 16, textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setError(null); }}
+                  style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {hi ? 'नागरिक खाता है? स्टाफ में अपग्रेड करें →' : 'Have a citizen account? Join as Staff →'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* REGISTER MODE */}
+          {mode === 'register' && (
+            <div>
+              {/* Toggle existing/new */}
+              <div style={{
+                display: 'flex', background: 'var(--gray-100)',
+                padding: 4, borderRadius: 'var(--radius-md)', marginBottom: 16,
+              }}>
+                {[
+                  { id: 'existing', label: hi ? '👤 मौजूदा खाता' : '👤 Existing Account' },
+                  { id: 'new',      label: hi ? '✨ नया खाता' : '✨ New Account' },
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { setRegisterType(t.id as 'existing' | 'new'); setError(null); }}
+                    style={{
+                      flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)',
+                      background: registerType === t.id ? '#fff' : 'transparent',
+                      color: registerType === t.id ? '#15803d' : 'var(--gray-600)',
+                      fontWeight: registerType === t.id ? 800 : 600,
+                      fontSize: '0.8rem', cursor: 'pointer',
+                      boxShadow: registerType === t.id ? 'var(--shadow-sm)' : 'none',
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
+                padding: '10px 12px', background: 'var(--green-50)',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--green-200)',
+              }}>
+                <AlertCircle size={15} color="var(--green-700)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.78rem', color: 'var(--green-900)', fontWeight: 600, lineHeight: 1.4 }}>
+                  {registerType === 'existing'
+                    ? (hi ? 'आपका खाता वैसा ही रहेगा, सिर्फ स्टाफ रोल जुड़ेगा।' : 'Your account stays the same. We just add the staff role.')
+                    : (hi ? 'नए स्टाफ खाते के लिए पंजीकरण।' : 'Register a new staff account.')}
+                </span>
+              </div>
+
+              <form onSubmit={registerType === 'existing' ? handleUpgradeExisting : handleRegisterNew}>
+                {renderRegistrationFields()}
+
+                {/* Email */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>📧 {hi ? 'ईमेल *' : 'Email *'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={15} style={iconStyle} />
+                    <input
+                      type="email"
+                      placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle}>🔒 {hi ? 'पासवर्ड *' : 'Password *'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={15} style={iconStyle} />
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      placeholder={hi ? 'पासवर्ड *' : 'Password *'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      style={{ ...inputStyle, paddingRight: 42 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(p => !p)}
+                      style={{
+                        position: 'absolute', right: 12, top: '50%',
+                        transform: 'translateY(-50%)', border: 'none',
+                        background: 'none', cursor: 'pointer', padding: 0,
+                        color: 'var(--gray-400)',
+                      }}
+                    >
+                      {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%', padding: '13px', border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: '#fff', fontWeight: 800, fontSize: '0.95rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
+                  }}
+                >
+                  {loading ? (
+                    <span className="spinner" style={{ width: 18, height: 18 }} />
+                  ) : (
+                    <>
+                      <ShieldCheck size={16} />
+                      {registerType === 'existing'
+                        ? (hi ? 'अपग्रेड आवेदन भेजें' : 'Submit Upgrade Request')
+                        : (hi ? 'पंजीकरण करें' : 'Submit Registration')}
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            style={{
+              width: '100%', marginTop: 14, padding: '8px',
+              border: 'none', background: 'none',
+              color: 'var(--gray-400)', fontSize: '0.82rem',
+              cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', gap: 5,
+            }}
+          >
+            <ArrowRight size={13} style={{ transform: 'rotate(180deg)' }} />
+            {hi ? 'होम पर वापस जाएं' : 'Back to Home'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
