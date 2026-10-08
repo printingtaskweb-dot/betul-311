@@ -58,7 +58,7 @@ const SERVICES: Service[] = [
   },
   {
     slug: 'streetlight',
-    icon: '💡',
+    image: '/street_light.png',
     gradient: 'linear-gradient(135deg, #78350f, #d97706)',
     shadow: 'rgba(217,119,6,0.3)',
     route: '/complaint/new?dept=streetlight',
@@ -66,8 +66,6 @@ const SERVICES: Service[] = [
   {
     slug: 'sewage',
     image: '/sewage.png',
-    
-    icon: '🚰',
     gradient: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
     shadow: 'rgba(124,58,237,0.3)',
     route: '/complaint/new?dept=sewage',
