@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Building2, Mail, ShieldCheck, ArrowRight, User, Phone,
-  ChevronDown, ChevronLeft, Clock, CheckCircle, LogOut, Search,
+  ChevronDown, ChevronLeft, Clock, LogOut, Search,
   MapPin, X, BadgeCheck, Briefcase, Crosshair, Crown, Plus,
 } from 'lucide-react';
 
@@ -63,10 +63,9 @@ export default function DeptLogin() {
   /* city */
   const [selectedCity, setSelectedCity] = useState('');
 
-  /* role — one of: '', 'municipal_commissioner', 'deputy_commissioner', 'dept:<uuid>' */
+  /* role — '', 'municipal_commissioner', 'deputy_commissioner', or 'dept:<uuid>' */
   const [roleKey, setRoleKey] = useState('');
-  const [selectedDept, setSelectedDept] = useState('');       // uuid when dept
-  const [selectedAuthority, setSelectedAuthority] = useState<AuthorityRole | null>(null);
+  const [selectedDept, setSelectedDept] = useState('');
 
   /* level */
   const [selectedDesig, setSelectedDesig] = useState<Designation | null>(null);
@@ -152,14 +151,12 @@ export default function DeptLogin() {
   });
 
   const isDeptRole = roleKey.startsWith('dept:');
-  const isAuthorityRole = roleKey === 'municipal_commissioner' || roleKey === 'deputy_commissioner';
 
   /* do we need the officer step? */
   const needsOfficer = (() => {
-    if (roleKey === 'municipal_commissioner') return false; // top role
-    if (roleKey === 'deputy_commissioner') return true;
+    if (roleKey === 'municipal_commissioner') return false;
+    if (roleKey === 'deputy_commissioner')   return true;
     if (isDeptRole) {
-      // department_head may skip (SQL allows null supervisor for it)
       return selectedDesig ? selectedDesig.tier !== 1 : true;
     }
     return true;
@@ -230,7 +227,6 @@ export default function DeptLogin() {
     } finally { setSearching(false); }
   };
 
-  /* stage guards */
   const goToCity = () => {
     if (!isLoggedIn) {
       if (!email.trim()) { setError(hi ? 'ईमेल आवश्यक है' : 'Email is required'); return; }
@@ -357,7 +353,7 @@ export default function DeptLogin() {
     setStage('account'); setAccountType('existing');
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
     setSelectedCity(''); setRoleKey(''); setSelectedDept('');
-    setSelectedDesig(null); setSelectedAuthority(null); setSupervisor(null);
+    setSelectedDesig(null); setSupervisor(null);
     setSearchResults([]); setSearchTerm(''); setError('');
   };
 
@@ -567,14 +563,8 @@ export default function DeptLogin() {
                     setRoleKey(v);
                     setSelectedDesig(null);
                     setSupervisor(null);
-                    if (v.startsWith('dept:')) {
-                      setSelectedDept(v.slice(5));
-                      setSelectedAuthority(null);
-                    } else {
-                      setSelectedDept('');
-                      const a = authorityRoles.find(r => r.code === v);
-                      setSelectedAuthority(a ?? null);
-                    }
+                    if (v.startsWith('dept:')) setSelectedDept(v.slice(5));
+                    else setSelectedDept('');
                   }}
                   style={{ ...S.select, color: roleKey ? 'var(--gray-900)' : 'var(--gray-400)' }}>
                   <option value="">{hi ? '— भूमिका चुनें —' : '— Select Role —'}</option>
