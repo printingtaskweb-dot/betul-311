@@ -77,6 +77,7 @@ export default function DeptLogin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<StaffMatch[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   /* details */
   const [fullName, setFullName] = useState('');
@@ -165,11 +166,13 @@ export default function DeptLogin() {
   const needsOfficer = (() => {
     if (roleKey === 'municipal_commissioner') return false;
     if (roleKey === 'deputy_commissioner')   return true;
-    if (isDeptRole) {
-      return selectedDesig ? selectedDesig.tier !== 1 : true;
-    }
+    if (isDeptRole) return true;
     return true;
   })();
+
+  /* Department Head -> must enter a Deputy Commissioner */
+  const needsDeputy = isDeptRole && !!selectedDesig &&
+    (selectedDesig.hierarchy_code === 'department_head' || selectedDesig.tier === 1);
 
   const flow: Stage[] = ['account', 'city', 'role'];
   if (isDeptRole) flow.push('level');
@@ -214,7 +217,7 @@ export default function DeptLogin() {
   };
 
   const runSearch = async () => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm.trim() && !needsDeputy) {
       setError(hi ? 'खोज शब्द दर्ज करें' : 'Enter a search term');
       return;
     }
@@ -229,7 +232,12 @@ export default function DeptLogin() {
         p_limit:         25,
       });
       if (e) throw e;
-      setSearchResults((data ?? []) as StaffMatch[]);
+      let list = (data ?? []) as StaffMatch[];
+      if (needsDeputy) {
+        list = list.filter(m => m.hierarchy_code === 'deputy_commissioner');
+      }
+      setSearchResults(list);
+      setSearched(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
     } finally { setSearching(false); }
@@ -300,7 +308,9 @@ export default function DeptLogin() {
 
   const goToDetails = () => {
     if (needsOfficer && !supervisor) {
-      setError(hi ? 'कृपया रिपोर्टिंग अधिकारी चुनें' : 'Please select a reporting officer');
+      setError(needsDeputy
+        ? (hi ? 'कृपया उप आयुक्त चुनें' : 'Please select your Deputy Commissioner')
+        : (hi ? 'कृपया रिपोर्टिंग अधिकारी चुनें' : 'Please select a reporting officer'));
       return;
     }
     setError(''); setStage('details');
@@ -369,7 +379,7 @@ export default function DeptLogin() {
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
     setSelectedCity(''); setRoleKey(''); setSelectedDept('');
     setSelectedDesig(null); setSupervisor(null);
-    setSearchResults([]); setSearchTerm(''); setError('');
+    setSearchResults([]); setSearchTerm(''); setSearched(false); setError('');
   };
 
   /* ---------------------------------------------------------------- */
@@ -653,7 +663,7 @@ export default function DeptLogin() {
                   {designations.map(d => {
                     const active = selectedDesig?.designation_id === d.designation_id;
                     return (
-                      <button key={d.designation_id} type="button" onClick={() => setSelectedDesig(d)}
+                      <button key={d.designation_id} type="button" onClick={() => { setSelectedDesig(d); setSupervisor(null); setSearchResults([]); setSearched(false); }}
                         style={{
                           padding: '12px 14px',
                           border: active ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
@@ -693,11 +703,11 @@ export default function DeptLogin() {
           {stage === 'officer' && (
             <>
               <h2 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 900 }}>
-                {hi ? 'रिपोर्टिंग अधिकारी' : 'Reporting officer'}
+                {needsDeputy ? (hi ? 'उप आयुक्त का कोड' : 'Deputy Commissioner code') : (hi ? 'रिपोर्टिंग अधिकारी' : 'Reporting officer')}
               </h2>
               <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                {hi ? 'सीनियर का स्टाफ आईडी या नाम से खोजें'
-                    : 'Search senior by staff ID or name'}
+                {hi ? (needsDeputy ? 'उप आयुक्त का स्टाफ कोड या नाम डालें (खाली छोड़कर सभी देखें)' : 'सीनियर का स्टाफ आईडी या नाम से खोजें')
+                    : (needsDeputy ? 'Enter the Deputy Commissioner staff code or name (leave empty to list all)' : 'Search senior by staff ID or name')}
               </p>
 
               {supervisor ? (
@@ -714,7 +724,7 @@ export default function DeptLogin() {
                       </p>
                     </div>
                   </div>
-                  <button type="button" onClick={() => setSupervisor(null)}
+                  <button type="button" onClick={() => { setSupervisor(null); setSearched(false); }}
                     style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#16a34a', padding: 4 }}>
                     <X size={16} />
                   </button>
@@ -725,9 +735,9 @@ export default function DeptLogin() {
                     <div style={{ position: 'relative', flex: 1 }}>
                       <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
                       <input type="text"
-                        placeholder={hi ? 'स्टाफ कोड, नाम या आईडी' : 'Staff code, name or ID'}
+                        placeholder={needsDeputy ? (hi ? 'उप आयुक्त का कोड (जैसे IMC-ABC123)' : 'Deputy Commissioner code (e.g. IMC-ABC123)') : (hi ? 'स्टाफ कोड, नाम या आईडी' : 'Staff code, name or ID')}
                         value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
+                        onChange={e => { setSearchTerm(e.target.value); setSearched(false); }}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
                         style={S.input} />
                     </div>
@@ -759,7 +769,7 @@ export default function DeptLogin() {
                     </div>
                   )}
 
-                  {searchResults.length === 0 && !searching && searchTerm && (
+                  {searchResults.length === 0 && !searching && searched && (
                     <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>
                       {hi ? 'कोई परिणाम नहीं मिला।' : 'No matches found.'}
                     </p>
