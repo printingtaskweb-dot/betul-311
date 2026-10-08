@@ -235,12 +235,47 @@ export default function DeptLogin() {
     } finally { setSearching(false); }
   };
 
-  const goToCity = () => {
-    if (!isLoggedIn) {
-      if (!email.trim()) { setError(hi ? 'ईमेल आवश्यक है' : 'Email is required'); return; }
-      if (!password)     { setError(hi ? 'पासवर्ड आवश्यक है' : 'Password is required'); return; }
+  const goToCity = async () => {
+    if (isLoggedIn) { setError(''); setStage('city'); return; }
+
+    const mail = email.trim().toLowerCase();
+    if (!mail)     { setError(hi ? 'ईमेल आवश्यक है' : 'Email is required'); return; }
+    if (!password) { setError(hi ? 'पासवर्ड आवश्यक है' : 'Password is required'); return; }
+    if (accountType === 'new' && password.length < 6) {
+      setError(hi ? 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए' : 'Password must be at least 6 characters');
+      return;
     }
-    setError(''); setStage('city');
+
+    setLoading(true); setError('');
+    try {
+      if (accountType === 'new') {
+        const { data, error: signErr } = await supabase.auth.signUp({ email: mail, password });
+        if (signErr) {
+          if (/already registered|already exists/i.test(signErr.message)) {
+            throw new Error(hi
+              ? 'यह ईमेल पहले से पंजीकृत है। कृपया "मौजूदा खाता" चुनें।'
+              : 'Email already registered. Please choose "Existing".');
+          }
+          throw signErr;
+        }
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error(hi
+            ? 'यह ईमेल पहले से पंजीकृत है। कृपया "मौजूदा खाता" चुनें।'
+            : 'Email already registered. Please choose "Existing".');
+        }
+        if (!data.session) {
+          throw new Error(hi
+            ? 'खाता बन गया है। कृपया ईमेल में भेजे गए लिंक से पुष्टि करें, फिर "मौजूदा खाता" से लॉग इन करें।'
+            : 'Account created. Please confirm your email using the link we sent, then log in with "Existing".');
+        }
+      } else {
+        const { error: signErr } = await supabase.auth.signInWithPassword({ email: mail, password });
+        if (signErr) throw signErr;
+      }
+      setStage('city');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not sign in');
+    } finally { setLoading(false); }
   };
 
   const goToRole = () => {
@@ -280,49 +315,15 @@ export default function DeptLogin() {
     setLoading(true);
     try {
       let userId = user?.id;
-      let userEmail = user?.email || email.trim().toLowerCase();
-
       if (!userId) {
-        if (accountType === 'new') {
-          const { data, error: signErr } = await supabase.auth.signUp({
-            email: email.trim().toLowerCase(), password,
-          });
-          if (signErr) {
-            if (/already registered|already exists/i.test(signErr.message)) {
-              throw new Error(hi
-                ? 'यह ईमेल पहले से पंजीकृत है। कृपया मौजूदा खाता चुनें।'
-                : 'Email already registered. Please choose Existing Account.');
-            }
-            throw signErr;
-          }
-          userId = data.user?.id;
-          userEmail = data.user?.email || userEmail;
-        } else {
-          const { data, error: signErr } = await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(), password,
-          });
-          if (signErr) throw signErr;
-          userId = data.user.id;
-          userEmail = data.user.email || userEmail;
-        }
+        const { data: sess } = await supabase.auth.getSession();
+        userId = sess.session?.user?.id;
       }
-      if (!userId) throw new Error('Could not establish session');
-
-      const { error: upsertErr } = await supabase.from('user_profiles').upsert({
-        id: userId,
-        email: userEmail,
-        full_name: fullName.trim(),
-        phone: phone.trim() || null,
-        role: 'pending_staff',
-        city_id: selectedCity || null,
-        supervisor_id: supervisor ? supervisor.id : null,
-        linked_department_id: isDeptRole ? selectedDept : null,
-        designation_id: isDeptRole && selectedDesig ? selectedDesig.designation_id : null,
-        latitude:  coords ? coords.lat : null,
-        longitude: coords ? coords.lng : null,
-        approval_status: 'pending',
-      });
-      if (upsertErr) throw upsertErr;
+      if (!userId) {
+        throw new Error(hi
+          ? 'पहले खाता बनाएं या लॉग इन करें'
+          : 'Please create an account or log in first');
+      }
 
       if (isDeptRole) {
         const { error: rpcErr } = await supabase.rpc('register_as_staff', {
@@ -347,6 +348,12 @@ export default function DeptLogin() {
           p_zone_id:        null,
         });
         if (rpcErr) throw rpcErr;
+      }
+
+      if (coords) {
+        await supabase.from('user_profiles')
+          .update({ latitude: coords.lat, longitude: coords.lng })
+          .eq('id', userId);
       }
 
       await refreshProfile();
@@ -477,8 +484,13 @@ export default function DeptLogin() {
                 </div>
               )}
 
-              <button type="button" onClick={goToCity} style={{ ...S.btnPrimary, marginTop: 8 }}>
-                {hi ? 'आगे' : 'Continue'} <ArrowRight size={15} />
+              <button type="button" onClick={goToCity} disabled={loading}
+                style={{ ...S.btnPrimary, marginTop: 8, opacity: loading ? 0.7 : 1, cursor: loading ? 'wait' : 'pointer' }}>
+                {loading
+                  ? (hi ? 'कृपया प्रतीक्षा करें…' : 'Please wait…')
+                  : isLoggedIn || accountType === 'existing'
+                    ? <>{hi ? 'आगे' : 'Continue'} <ArrowRight size={15} /></>
+                    : <>{hi ? 'खाता बनाएं और आगे बढ़ें' : 'Create account & continue'} <ArrowRight size={15} /></>}
               </button>
             </>
           )}
