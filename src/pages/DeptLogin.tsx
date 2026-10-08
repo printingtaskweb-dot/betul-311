@@ -6,7 +6,7 @@ import {
   Building2, Mail, LogIn, ShieldCheck, ArrowRight,
   User, Phone, ChevronDown, Clock, CheckCircle,
   ArrowUpCircle, LogOut, Search, MapPin, X, BadgeCheck,
-  AlertCircle, Briefcase,
+  AlertCircle, Briefcase, Crosshair, Crown,
 } from 'lucide-react';
 
 import { FormInput } from '../components/auth/FormInput';
@@ -14,29 +14,41 @@ import { PasswordInput } from '../components/auth/PasswordInput';
 import { AlertBanner } from '../components/auth/AlertBanner';
 
 interface Department { id: string; name: string; slug: string; icon: string; }
-interface City { id: string; name: string; state: string | null; slug: string | null; }
+interface City { id: string; name: string; state: string | null; slug: string | null; district?: string | null; }
 interface Designation {
-  id: string;
-  department_id: string;
-  tier: number;
-  name: string;
-  name_hi: string | null;
-  maps_to_role: string;
-  scope_description: string | null;
+  id: string; department_id: string; tier: number;
+  name: string; name_hi: string | null;
+  maps_to_role: string; scope_description: string | null;
+}
+interface AuthorityRole {
+  code: string; name: string; name_hi: string | null;
+  rank: number; parent_code: string | null;
+  scope_level: string; maps_to_role: string;
+  can_approve: boolean; can_view_all: boolean;
+  description: string | null;
 }
 interface StaffMatch {
   id: string;
   full_name: string | null;
   role: string;
+  authority_role: string | null;
+  hierarchy_code: string | null;
+  hierarchy_rank: number | null;
   staff_code: string | null;
   city_id: string | null;
   city_name: string | null;
+  district: string | null;
   department_id: string | null;
   department_name: string | null;
+  designation_id: string | null;
+  designation_name: string | null;
+  tier: number | null;
   supervisor_id: string | null;
+  distance_km: number | null;
 }
 
 type Mode = 'login' | 'register' | 'upgrade' | 'pending';
+type RegisterKind = 'department' | 'authority';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Department Head',
@@ -48,12 +60,12 @@ const TIER_LABELS: Record<number, string> = {
 export default function DeptLogin() {
   const { user, profile, refreshProfile, signOut, language: rawLang } = useAuth();
   const navigate = useNavigate();
+  const hi = rawLang === 'hi';
+  const language: 'en' | 'hi' = hi ? 'hi' : 'en';
 
-  const language: 'en' | 'hi' = rawLang === 'hi' ? 'hi' : 'en';
-  const hi = language === 'hi';
-
-  const [mode, setMode] = useState<Mode>('login');
-  const [registerType, setRegisterType] = useState<'existing' | 'new'>('existing');
+  const [mode, setMode]                     = useState<Mode>('login');
+  const [registerKind, setRegisterKind]     = useState<RegisterKind>('department');
+  const [registerType, setRegisterType]     = useState<'existing' | 'new'>('existing');
 
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -62,29 +74,44 @@ export default function DeptLogin() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
-  const [cities, setCities]             = useState<City[]>([]);
-  const [departments, setDepartments]   = useState<Department[]>([]);
-  const [designations, setDesignations] = useState<Designation[]>([]);
-  const [selectedCity, setSelectedCity] = useState('');
-  const [selectedDept, setSelectedDept] = useState('');
-  const [selectedDesig, setSelectedDesig] = useState<Designation | null>(null);
-  const [supervisor, setSupervisor]     = useState<StaffMatch | null>(null);
+  const [cities, setCities]                 = useState<City[]>([]);
+  const [departments, setDepartments]       = useState<Department[]>([]);
+  const [designations, setDesignations]     = useState<Designation[]>([]);
+  const [authorityRoles, setAuthorityRoles] = useState<AuthorityRole[]>([]);
+
+  const [selectedCity, setSelectedCity]           = useState('');
+  const [selectedDept, setSelectedDept]           = useState('');
+  const [selectedDesig, setSelectedDesig]         = useState<Designation | null>(null);
+  const [selectedAuthority, setSelectedAuthority] = useState<AuthorityRole | null>(null);
+  const [supervisor, setSupervisor]               = useState<StaffMatch | null>(null);
+
+  const [coords, setCoords]         = useState<{ lat: number; lng: number } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [searchTerm, setSearchTerm]       = useState('');
   const [searchResults, setSearchResults] = useState<StaffMatch[]>([]);
   const [searching, setSearching]         = useState(false);
 
+  // ---------- loads ----------
   useEffect(() => {
-    supabase.from('cities').select('id, name, state, slug').eq('is_active', true).order('name')
+    supabase.from('cities')
+      .select('id, name, state, slug, district')
+      .eq('is_active', true).order('name')
       .then(({ data }) => setCities(data ?? []));
   }, []);
 
   useEffect(() => {
-    supabase.from('departments').select('id, name, slug, icon').eq('is_active', true).order('name')
+    supabase.from('departments')
+      .select('id, name, slug, icon')
+      .eq('is_active', true).order('name')
       .then(({ data }) => setDepartments(data ?? []));
   }, []);
 
-  // Load designations when department changes
+  useEffect(() => {
+    supabase.rpc('list_hierarchy_roles')
+      .then(({ data }) => setAuthorityRoles((data ?? []) as AuthorityRole[]));
+  }, []);
+
   useEffect(() => {
     if (!selectedDept) { setDesignations([]); setSelectedDesig(null); return; }
     supabase.rpc('list_designations', { dept_id: selectedDept })
@@ -111,53 +138,81 @@ export default function DeptLogin() {
     }
   }, [user, profile, navigate]);
 
+  // ---------- styles ----------
   const labelStyle: React.CSSProperties = {
     display: 'block', fontWeight: 700, fontSize: '0.82rem',
     marginBottom: 6, color: 'var(--gray-700)',
   };
-
   const selectStyle: React.CSSProperties = {
     width: '100%', padding: '11px 36px 11px 40px',
     border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-    fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
-    appearance: 'none', cursor: 'pointer',
+    fontSize: '0.9rem', background: '#fff', outline: 'none',
+    boxSizing: 'border-box', appearance: 'none', cursor: 'pointer',
   };
 
+  // ---------- geolocation ----------
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      setError(hi ? 'आपके ब्राउज़र में लोकेशन उपलब्ध नहीं है' : 'Geolocation not supported');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        const { data } = await supabase.rpc('nearest_city', {
+          p_lat: lat, p_lng: lng, p_max_km: 200,
+        });
+        const nc = (data as any[] | null)?.[0];
+        if (nc?.id) setSelectedCity(nc.id);
+        else setError(hi ? 'निकटतम शहर नहीं मिला' : 'No nearby city found');
+        setGeoLoading(false);
+      },
+      () => {
+        setError(hi ? 'लोकेशन की अनुमति नहीं मिली' : 'Location permission denied');
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  // ---------- approver search ----------
   const runSearch = async () => {
-    if (!searchTerm.trim() && !selectedCity && !selectedDept) {
+    if (!searchTerm.trim() && !selectedCity && !selectedDept && !coords) {
       setSearchResults([]); return;
     }
     setSearching(true);
     try {
-      const { data, error: rpcErr } = await supabase.rpc('search_staff_for_signup', {
-        search_term: searchTerm.trim() || null,
-        city_filter: selectedCity || null,
-        role_filter: null,
+      const { data, error: rpcErr } = await supabase.rpc('search_approvers_for_signup', {
+        p_search:        searchTerm.trim() || null,
+        p_city_id:       selectedCity || null,
+        p_department_id: registerKind === 'department' ? (selectedDept || null) : null,
+        p_lat:           coords?.lat ?? null,
+        p_lng:           coords?.lng ?? null,
+        p_limit:         25,
       });
       if (rpcErr) throw rpcErr;
-      setSearchResults(data ?? []);
+      setSearchResults((data ?? []) as StaffMatch[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
     } finally { setSearching(false); }
   };
 
-  const pickSupervisor = (match: StaffMatch) => {
-    setSupervisor(match);
-    if (match.city_id) setSelectedCity(match.city_id);
-    if (match.department_id) setSelectedDept(match.department_id);
-    setSearchResults([]);
-    setSearchTerm('');
+  const pickSupervisor = (m: StaffMatch) => {
+    setSupervisor(m);
+    if (m.city_id) setSelectedCity(m.city_id);
+    if (m.department_id && registerKind === 'department') setSelectedDept(m.department_id);
+    setSearchResults([]); setSearchTerm('');
   };
-
   const clearSupervisor = () => setSupervisor(null);
 
+  // ---------- login ----------
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(''); setLoading(true);
+    e.preventDefault(); setError(''); setLoading(true);
     try {
       const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
       if (authErr) throw authErr;
-
       const { data: userProf } = await supabase
         .from('user_profiles').select('*').eq('id', data.user.id).single();
 
@@ -165,12 +220,9 @@ export default function DeptLogin() {
         'dept_staff','admin','department_head','supervisor','control_room',
         'management_viewer','field_employee','municipal_administrator',
       ];
-
-      if (userProf?.role && staffRoles.includes(userProf.role)) {
-        navigate('/dept/dashboard');
-      } else if (userProf?.role === 'pending_staff') {
-        setMode('pending');
-      } else {
+      if (userProf?.role && staffRoles.includes(userProf.role)) navigate('/dept/dashboard');
+      else if (userProf?.role === 'pending_staff') setMode('pending');
+      else {
         setFullName(userProf?.full_name ?? '');
         setPhone(userProf?.phone ?? '');
         setMode('upgrade');
@@ -183,31 +235,38 @@ export default function DeptLogin() {
     } finally { setLoading(false); }
   };
 
+  // ---------- submit ----------
   const submitRegistration = async (isNewAccount: boolean) => {
     setError('');
 
     if (!selectedCity) { setError(hi ? 'कृपया शहर चुनें' : 'Please select your city'); return; }
-    if (!selectedDept) { setError(hi ? 'कृपया विभाग चुनें' : 'Please select your department'); return; }
-    if (!selectedDesig) { setError(hi ? 'कृपया पद चुनें' : 'Please select your designation'); return; }
 
-    const needsSupervisor = selectedDesig.tier !== 1;
-    if (needsSupervisor && !supervisor) {
-      setError(hi ? 'कृपया सुपरवाइज़र खोजें और चुनें' : 'Please search and select your supervisor');
-      return;
+    if (registerKind === 'department') {
+      if (!selectedDept)  { setError(hi ? 'कृपया विभाग चुनें' : 'Please select your department'); return; }
+      if (!selectedDesig) { setError(hi ? 'कृपया पद चुनें' : 'Please select your designation'); return; }
+      if (selectedDesig.tier !== 1 && !supervisor) {
+        setError(hi ? 'कृपया रिपोर्टिंग अधिकारी खोजें' : 'Please search and select your reporting officer');
+        return;
+      }
+    } else {
+      if (!selectedAuthority) { setError(hi ? 'कृपया भूमिका चुनें' : 'Please select your authority role'); return; }
+      if (!['platform_admin','mayor'].includes(selectedAuthority.code) && !supervisor) {
+        setError(hi ? 'कृपया रिपोर्टिंग अधिकारी खोजें' : 'Please search and select your reporting officer');
+        return;
+      }
     }
 
     setLoading(true);
     try {
       let targetUserId = user?.id;
-      let targetEmail = user?.email || email;
+      let targetEmail  = user?.email || email;
 
       if (isNewAccount) {
         const { data, error: signErr } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(), password,
         });
         if (signErr) {
-          if (signErr.message.toLowerCase().includes('already registered') ||
-              signErr.message.toLowerCase().includes('already exists')) {
+          if (/already registered|already exists/i.test(signErr.message)) {
             setRegisterType('existing');
             setError(hi
               ? 'यह ईमेल पहले से पंजीकृत है! पासवर्ड डालकर अपग्रेड करें।'
@@ -217,18 +276,19 @@ export default function DeptLogin() {
           throw signErr;
         }
         targetUserId = data.user?.id;
-        targetEmail = data.user?.email || email;
+        targetEmail  = data.user?.email || email;
       } else if (!targetUserId) {
-        const { data: signinData, error: signinErr } = await supabase.auth.signInWithPassword({
+        const { data: s, error: sErr } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(), password,
         });
-        if (signinErr) throw signinErr;
-        targetUserId = signinData.user.id;
-        targetEmail = signinData.user.email || email;
+        if (sErr) throw sErr;
+        targetUserId = s.user.id;
+        targetEmail  = s.user.email || email;
       }
 
       if (!targetUserId) throw new Error('Could not establish user session');
 
+      // Base profile upsert
       const { error: upsertErr } = await supabase.from('user_profiles').upsert({
         id: targetUserId,
         email: targetEmail.trim().toLowerCase(),
@@ -236,23 +296,40 @@ export default function DeptLogin() {
         phone: phone.trim() || profile?.phone || null,
         language,
         role: 'pending_staff',
-        linked_department_id: selectedDept,
         city_id: selectedCity,
         supervisor_id: supervisor?.id || null,
-        designation_id: selectedDesig.id,
+        linked_department_id: registerKind === 'department' ? selectedDept : null,
+        designation_id: registerKind === 'department' ? (selectedDesig?.id ?? null) : null,
+        latitude:  coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
       });
       if (upsertErr) throw upsertErr;
 
-      await supabase.rpc('register_as_staff', {
-        target_role: selectedDesig.maps_to_role,
-        department_id: selectedDept,
-        city_id: selectedCity,
-        supervisor_id: supervisor?.id || null,
-        full_name: fullName.trim() || null,
-        phone: phone.trim() || null,
-        designation_id: selectedDesig.id,
-        zone_id: null,
-      });
+      if (registerKind === 'department') {
+        // NOTE: parameter names match the SQL signature exactly
+        const { error: rpcErr } = await supabase.rpc('register_as_staff', {
+          target_role:    selectedDesig!.maps_to_role,
+          department_id:  selectedDept,
+          city_id:        selectedCity,
+          supervisor_id:  supervisor?.id || null,
+          full_name:      fullName.trim() || null,
+          phone:          phone.trim() || null,
+          designation_id: selectedDesig!.id,
+          zone_id:        null,
+        });
+        if (rpcErr) throw rpcErr;
+      } else {
+        const { error: rpcErr } = await supabase.rpc('register_authority_user', {
+          p_authority_role: selectedAuthority!.code,
+          p_city_id:        selectedCity,
+          p_supervisor_id:  supervisor?.id || null,
+          p_full_name:      fullName.trim() || null,
+          p_phone:          phone.trim() || null,
+          p_designation_id: null,
+          p_zone_id:        null,
+        });
+        if (rpcErr) throw rpcErr;
+      }
 
       await refreshProfile();
       setMode('pending');
@@ -269,15 +346,15 @@ export default function DeptLogin() {
     setMode('login');
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
     setSelectedCity(''); setSelectedDept(''); setSelectedDesig(null);
-    setSupervisor(null); setError('');
+    setSelectedAuthority(null); setSupervisor(null); setError('');
   };
 
-  // ───────────── PENDING SCREEN ─────────────
+  // ---------- PENDING ----------
   if (mode === 'pending') {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
+        background: 'linear-gradient(135deg,#0f4c2a 0%,#16a34a 50%,#4ade80 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}>
         <div style={{
@@ -287,7 +364,8 @@ export default function DeptLogin() {
         }}>
           <div style={{
             width: 72, height: 72, borderRadius: '50%', background: '#fef3c7',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 20px',
           }}>
             <Clock size={32} color="#d97706" />
           </div>
@@ -296,12 +374,14 @@ export default function DeptLogin() {
           </h2>
           <p style={{ margin: '0 0 20px', fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.7 }}>
             {hi
-              ? 'आपका आवेदन आपके सुपरवाइज़र / एडमिन तक भेज दिया गया है।'
-              : 'Your application has been forwarded to your supervisor / admin.'}
+              ? 'आपका आवेदन आपके सीनियर अधिकारी तक भेज दिया गया है।'
+              : 'Your application has been forwarded to your senior officer.'}
           </p>
+
           <div style={{
-            padding: '14px 18px', background: '#f0fdf4', borderRadius: 'var(--radius-md)',
-            border: '1.5px solid #bbf7d0', marginBottom: 22, textAlign: 'left',
+            padding: '14px 18px', background: '#f0fdf4',
+            borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0',
+            marginBottom: 22, textAlign: 'left',
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <CheckCircle size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -311,22 +391,30 @@ export default function DeptLogin() {
                 </p>
                 {selectedDesig && (
                   <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
-                    {hi ? 'पद:' : 'Designation:'} <b>{hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}</b>
+                    {hi ? 'पद:' : 'Designation:'}{' '}
+                    <b>{hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}</b>
+                  </p>
+                )}
+                {selectedAuthority && (
+                  <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
+                    {hi ? 'भूमिका:' : 'Role:'}{' '}
+                    <b>{hi && selectedAuthority.name_hi ? selectedAuthority.name_hi : selectedAuthority.name}</b>
                   </p>
                 )}
                 {supervisor && (
                   <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
-                    {hi ? 'सुपरवाइज़र:' : 'Supervisor:'} <b>{supervisor.full_name}</b>
+                    {hi ? 'रिपोर्टिंग:' : 'Reports to:'} <b>{supervisor.full_name}</b>
                     {supervisor.staff_code ? ` (${supervisor.staff_code})` : ''}
                   </p>
                 )}
               </div>
             </div>
           </div>
+
           <button onClick={() => navigate('/')} style={{
             width: '100%', padding: '12px', border: 'none',
             borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg, #15803d, #16a34a)',
+            background: 'linear-gradient(135deg,#15803d,#16a34a)',
             color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
           }}>
             {hi ? 'होम पर जाएं' : 'Go to Home'}
@@ -344,189 +432,313 @@ export default function DeptLogin() {
     );
   }
 
-  // ───────────── SHARED: REGISTRATION FIELDS ─────────────
+  // ---------- SHARED FIELDS ----------
+  const renderReportingSearch = () => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={labelStyle}>
+        👨‍💼 {hi ? 'रिपोर्टिंग अधिकारी खोजें *' : 'Find your Reporting Officer *'}
+      </label>
+      {supervisor ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 12px', background: '#f0fdf4',
+          borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BadgeCheck size={18} color="#16a34a" />
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#065f46' }}>
+                {supervisor.full_name}
+              </p>
+              <p style={{ margin: 0, fontSize: '0.72rem', color: '#15803d' }}>
+                {(supervisor.hierarchy_code || supervisor.role || '').replace(/_/g, ' ')}
+                {supervisor.staff_code ? ` • ${supervisor.staff_code}` : ''}
+                {supervisor.department_name ? ` • ${supervisor.department_name}` : ''}
+                {supervisor.distance_km != null ? ` • ${supervisor.distance_km} km` : ''}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={clearSupervisor}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#16a34a', padding: 4 }}>
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} style={{
+                position: 'absolute', left: 13, top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+              }} />
+              <input type="text"
+                placeholder={hi ? 'स्टाफ कोड, नाम या आईडी' : 'Staff code, name or ID'}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
+                style={{
+                  width: '100%', padding: '11px 14px 11px 40px',
+                  border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+                  fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
+                }} />
+            </div>
+            <button type="button" onClick={runSearch} disabled={searching}
+              style={{
+                padding: '0 16px', border: 'none', borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg,#15803d,#16a34a)',
+                color: '#fff', fontWeight: 800, fontSize: '0.82rem',
+                cursor: searching ? 'wait' : 'pointer',
+              }}>
+              {searching ? '...' : (hi ? 'खोजें' : 'Find')}
+            </button>
+          </div>
+          <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+            💡 {hi
+              ? 'सीनियर का स्टाफ कोड पता हो तो सीधे खोजें। लोकेशन देकर निकटतम अधिकारी भी देख सकते हैं।'
+              : 'Know your senior\'s staff code? Search directly. Or use location for the nearest officer.'}
+          </p>
+
+          {searchResults.length > 0 && (
+            <div style={{
+              border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+              maxHeight: 240, overflowY: 'auto', background: '#fff',
+            }}>
+              {searchResults.map(m => (
+                <button key={m.id} type="button" onClick={() => pickSupervisor(m)}
+                  style={{
+                    width: '100%', padding: '10px 12px', border: 'none',
+                    borderBottom: '1px solid var(--gray-100)',
+                    background: '#fff', cursor: 'pointer', textAlign: 'left',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>
+                      {m.full_name || 'Unnamed Staff'}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+                      {(m.hierarchy_code || m.role || '').replace(/_/g, ' ')}
+                      {m.staff_code ? ` • ${m.staff_code}` : ''}
+                      {m.city_name ? ` • ${m.city_name}` : ''}
+                      {m.department_name ? ` • ${m.department_name}` : ''}
+                      {m.distance_km != null ? ` • ${m.distance_km} km` : ''}
+                    </p>
+                  </div>
+                  <ArrowRight size={14} color="var(--gray-400)" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {searchResults.length === 0 && !searching && searchTerm && (
+            <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+              {hi ? 'कोई परिणाम नहीं मिला।' : 'No matches found.'}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   const renderRegistrationFields = () => (
     <>
+      {/* KIND SWITCH */}
+      <div style={{
+        display: 'flex', background: 'var(--gray-100)',
+        padding: 4, borderRadius: 'var(--radius-md)', marginBottom: 16,
+      }}>
+        {[
+          { id: 'department', label: hi ? '🏢 विभाग' : '🏢 Department', icon: Building2 },
+          { id: 'authority',  label: hi ? '👑 प्राधिकरण' : '👑 Authority',  icon: Crown },
+        ].map(t => {
+          const Icon = t.icon;
+          const active = registerKind === t.id;
+          return (
+            <button key={t.id} type="button"
+              onClick={() => {
+                setRegisterKind(t.id as RegisterKind);
+                setSupervisor(null); setSearchResults([]);
+              }}
+              style={{
+                flex: 1, padding: '9px', border: 'none', borderRadius: 'var(--radius-sm)',
+                background: active ? '#fff' : 'transparent',
+                color: active ? '#15803d' : 'var(--gray-600)',
+                fontWeight: active ? 800 : 600, fontSize: '0.8rem', cursor: 'pointer',
+                boxShadow: active ? 'var(--shadow-sm)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+              <Icon size={14} /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* CITY + GEO */}
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>🏙️ {hi ? 'शहर चुनें *' : 'Select City *'}</label>
-        <div style={{ position: 'relative' }}>
-          <MapPin size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-          <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} required
-            style={{ ...selectStyle, color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)' }}>
-            <option value="" disabled>{hi ? '— शहर चुनें —' : '— Select City —'}</option>
-            {cities.map(c => (
-              <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>🏢 {hi ? 'विभाग चुनें *' : 'Select Department *'}</label>
-        <div style={{ position: 'relative' }}>
-          <Building2 size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-          <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)} required
-            style={{ ...selectStyle, color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)' }}>
-            <option value="" disabled>{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
-            {departments.map(d => (
-              <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-        </div>
-      </div>
-
-      {selectedDept && designations.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>🎯 {hi ? 'पद / डेज़िग्नेशन चुनें *' : 'Select Designation *'}</label>
-          <div style={{ position: 'relative' }}>
-            <Briefcase size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-            <select
-              value={selectedDesig?.id ?? ''}
-              onChange={e => {
-                const d = designations.find(x => x.id === e.target.value);
-                setSelectedDesig(d ?? null);
-                setSupervisor(null);
-              }}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <MapPin size={15} style={{
+              position: 'absolute', left: 13, top: '50%',
+              transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+            }} />
+            <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)}
               required
-              style={{ ...selectStyle, color: selectedDesig ? 'var(--gray-900)' : 'var(--gray-400)' }}>
-              <option value="" disabled>{hi ? '— पद चुनें —' : '— Select Designation —'}</option>
-              {designations.map(d => (
-                <option key={d.id} value={d.id}>
-                  {TIER_LABELS[d.tier]} — {hi && d.name_hi ? d.name_hi : d.name}
+              style={{ ...selectStyle, color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+              <option value="" disabled>{hi ? '— शहर चुनें —' : '— Select City —'}</option>
+              {cities.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.state ? `, ${c.state}` : ''}
                 </option>
               ))}
             </select>
-            <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+            <ChevronDown size={14} style={{
+              position: 'absolute', right: 12, top: '50%',
+              transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+            }} />
           </div>
-          {selectedDesig?.scope_description && (
-            <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', fontStyle: 'italic' }}>
-              {selectedDesig.scope_description}
-            </p>
-          )}
-        </div>
-      )}
-
-      {selectedDesig && selectedDesig.tier !== 1 && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>👨‍💼 {hi ? 'रिपोर्टिंग अधिकारी खोजें *' : 'Find your Reporting Officer *'}</label>
-
-          {supervisor ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 12px', background: '#f0fdf4',
-              borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0',
+          <button type="button" onClick={detectLocation} disabled={geoLoading}
+            title={hi ? 'मेरी लोकेशन' : 'Use my location'}
+            style={{
+              padding: '0 14px', border: '1.5px solid var(--green-200)',
+              borderRadius: 'var(--radius-md)', background: '#f0fdf4',
+              color: '#15803d', cursor: geoLoading ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontWeight: 700, fontSize: '0.78rem',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BadgeCheck size={18} color="#16a34a" />
-                <div>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#065f46' }}>
-                    {supervisor.full_name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#15803d' }}>
-                    {supervisor.role.replace(/_/g, ' ')}
-                    {supervisor.staff_code ? ` • ${supervisor.staff_code}` : ''}
-                  </p>
-                </div>
-              </div>
-              <button type="button" onClick={clearSupervisor}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#16a34a', padding: 4 }}>
-                <X size={16} />
-              </button>
+            <Crosshair size={14} />
+            {geoLoading ? '...' : (hi ? 'लोकेशन' : 'Locate')}
+          </button>
+        </div>
+        {coords && (
+          <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+            📍 {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+          </p>
+        )}
+      </div>
+
+      {/* DEPARTMENT BRANCH */}
+      {registerKind === 'department' && (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>🏢 {hi ? 'विभाग चुनें *' : 'Select Department *'}</label>
+            <div style={{ position: 'relative' }}>
+              <Building2 size={15} style={{
+                position: 'absolute', left: 13, top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+              }} />
+              <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)}
+                required
+                style={{ ...selectStyle, color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+                <option value="" disabled>{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} style={{
+                position: 'absolute', right: 12, top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+              }} />
             </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                  <input type="text"
-                    placeholder={hi ? 'स्टाफ कोड या नाम से खोजें' : 'Search by staff code or name'}
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
-                    style={{
-                      width: '100%', padding: '11px 14px 11px 40px',
-                      border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-                      fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
-                    }} />
-                </div>
-                <button type="button" onClick={runSearch} disabled={searching}
-                  style={{
-                    padding: '0 16px', border: 'none', borderRadius: 'var(--radius-md)',
-                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
-                    color: '#fff', fontWeight: 800, fontSize: '0.82rem',
-                    cursor: searching ? 'wait' : 'pointer',
-                  }}>
-                  {searching ? '...' : (hi ? 'खोजें' : 'Find')}
-                </button>
-              </div>
+          </div>
 
-              <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
-                💡 {hi ? 'अपने सीनियर का स्टाफ कोड पता हो तो सीधे खोजें।' : 'Know your senior\'s staff code? Search directly.'}
-              </p>
-
-              {searchResults.length > 0 && (
-                <div style={{
-                  border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-                  maxHeight: 220, overflowY: 'auto', background: '#fff',
-                }}>
-                  {searchResults.map(m => (
-                    <button key={m.id} type="button" onClick={() => pickSupervisor(m)}
-                      style={{
-                        width: '100%', padding: '10px 12px', border: 'none',
-                        borderBottom: '1px solid var(--gray-100)',
-                        background: '#fff', cursor: 'pointer', textAlign: 'left',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      }}>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>
-                          {m.full_name || 'Unnamed Staff'}
-                        </p>
-                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--gray-500)' }}>
-                          {m.role.replace(/_/g, ' ')}
-                          {m.staff_code ? ` • ${m.staff_code}` : ''}
-                          {m.city_name ? ` • ${m.city_name}` : ''}
-                          {m.department_name ? ` • ${m.department_name}` : ''}
-                        </p>
-                      </div>
-                      <ArrowRight size={14} color="var(--gray-400)" />
-                    </button>
+          {selectedDept && designations.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>🎯 {hi ? 'पद चुनें *' : 'Select Designation *'}</label>
+              <div style={{ position: 'relative' }}>
+                <Briefcase size={15} style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+                }} />
+                <select
+                  value={selectedDesig?.id ?? ''}
+                  onChange={e => {
+                    const d = designations.find(x => x.id === e.target.value);
+                    setSelectedDesig(d ?? null); setSupervisor(null);
+                  }}
+                  required
+                  style={{ ...selectStyle, color: selectedDesig ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+                  <option value="" disabled>{hi ? '— पद चुनें —' : '— Select Designation —'}</option>
+                  {designations.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {TIER_LABELS[d.tier]} — {hi && d.name_hi ? d.name_hi : d.name}
+                    </option>
                   ))}
-                </div>
-              )}
-
-              {searchResults.length === 0 && !searching && searchTerm && (
-                <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                  {hi ? 'कोई परिणाम नहीं मिला।' : 'No matches found.'}
+                </select>
+                <ChevronDown size={14} style={{
+                  position: 'absolute', right: 12, top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+                }} />
+              </div>
+              {selectedDesig?.scope_description && (
+                <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                  {selectedDesig.scope_description}
                 </p>
               )}
-            </>
+            </div>
           )}
-        </div>
+
+          {selectedDesig && selectedDesig.tier !== 1 && renderReportingSearch()}
+        </>
       )}
 
-      <FormInput
-        icon={User}
+      {/* AUTHORITY BRANCH */}
+      {registerKind === 'authority' && (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>👑 {hi ? 'भूमिका चुनें *' : 'Select Authority Role *'}</label>
+            <div style={{ position: 'relative' }}>
+              <Crown size={15} style={{
+                position: 'absolute', left: 13, top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+              }} />
+              <select
+                value={selectedAuthority?.code ?? ''}
+                onChange={e => {
+                  const r = authorityRoles.find(x => x.code === e.target.value);
+                  setSelectedAuthority(r ?? null); setSupervisor(null);
+                }}
+                required
+                style={{ ...selectStyle, color: selectedAuthority ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+                <option value="" disabled>{hi ? '— भूमिका चुनें —' : '— Select Role —'}</option>
+                {authorityRoles.map(r => (
+                  <option key={r.code} value={r.code}>
+                    {hi && r.name_hi ? r.name_hi : r.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} style={{
+                position: 'absolute', right: 12, top: '50%',
+                transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none',
+              }} />
+            </div>
+            {selectedAuthority?.description && (
+              <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                {selectedAuthority.description}
+              </p>
+            )}
+          </div>
+
+          {selectedAuthority
+            && !['platform_admin','mayor'].includes(selectedAuthority.code)
+            && renderReportingSearch()}
+        </>
+      )}
+
+      <FormInput icon={User}
         placeholder={hi ? 'पूरा नाम' : 'Full Name'}
-        value={fullName}
-        onChange={e => setFullName(e.target.value)}
-      />
-      <FormInput
-        icon={Phone}
+        value={fullName} onChange={e => setFullName(e.target.value)} />
+      <FormInput icon={Phone}
         placeholder={hi ? 'मोबाइल नंबर' : 'Mobile Number'}
-        value={phone}
-        onChange={e => setPhone(e.target.value)}
-      />
+        value={phone} onChange={e => setPhone(e.target.value)} />
     </>
   );
 
-  // ───────────── UPGRADE VIEW (logged-in citizen) ─────────────
+  // ---------- UPGRADE (logged-in citizen) ----------
   if (mode === 'upgrade' && user) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
+        background: 'linear-gradient(135deg,#0f4c2a 0%,#16a34a 50%,#4ade80 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px',
       }}>
         <div style={{
@@ -534,7 +746,7 @@ export default function DeptLogin() {
           borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #15803d, #16a34a)',
+            background: 'linear-gradient(135deg,#15803d,#16a34a)',
             padding: '26px 28px', textAlign: 'center',
           }}>
             <div style={{
@@ -561,7 +773,7 @@ export default function DeptLogin() {
               style={{
                 width: '100%', padding: '13px', border: 'none',
                 borderRadius: 'var(--radius-md)',
-                background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg,#15803d,#16a34a)',
                 color: '#fff', fontWeight: 800, fontSize: '0.95rem',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -576,7 +788,8 @@ export default function DeptLogin() {
               style={{
                 width: '100%', marginTop: 14, padding: '10px', border: 'none',
                 background: 'none', color: 'var(--gray-500)', fontSize: '0.82rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 6,
               }}>
               <LogOut size={13} /> {hi ? 'दूसरे खाते से लॉगिन करें' : 'Use a different account'}
             </button>
@@ -586,11 +799,11 @@ export default function DeptLogin() {
     );
   }
 
-  // ───────────── MAIN LOGIN / REGISTER ─────────────
+  // ---------- MAIN LOGIN / REGISTER ----------
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
+      background: 'linear-gradient(135deg,#0f4c2a 0%,#16a34a 50%,#4ade80 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px',
     }}>
       <div style={{
@@ -598,7 +811,7 @@ export default function DeptLogin() {
         borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
       }}>
         <div style={{
-          background: 'linear-gradient(135deg, #15803d, #16a34a)',
+          background: 'linear-gradient(135deg,#15803d,#16a34a)',
           padding: '28px 32px', textAlign: 'center',
         }}>
           <div style={{
@@ -651,7 +864,7 @@ export default function DeptLogin() {
                 style={{
                   width: '100%', padding: '13px', border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                  background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg,#15803d,#16a34a)',
                   color: '#fff', fontWeight: 800, fontSize: '0.95rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -661,11 +874,11 @@ export default function DeptLogin() {
                   <><LogIn size={16} /> {hi ? 'लॉगिन करें' : 'Login to Department'}</>
                 )}
               </button>
-
               <div style={{ marginTop: 16, textAlign: 'center' }}>
                 <button type="button"
                   onClick={() => { setMode('register'); setError(''); }}
-                  style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ background: 'none', border: 'none', color: '#15803d',
+                           fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                   {hi ? 'नागरिक खाता है? स्टाफ में अपग्रेड करें →' : 'Have a citizen account? Join as Staff →'}
                 </button>
               </div>
@@ -725,7 +938,7 @@ export default function DeptLogin() {
                   style={{
                     width: '100%', padding: '13px', border: 'none',
                     borderRadius: 'var(--radius-md)',
-                    background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg, #15803d, #16a34a)',
+                    background: loading ? 'var(--gray-300)' : 'linear-gradient(135deg,#15803d,#16a34a)',
                     color: '#fff', fontWeight: 800, fontSize: '0.95rem',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
