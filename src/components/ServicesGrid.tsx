@@ -29,7 +29,7 @@ const SERVICES: Service[] = [
   },
   {
     slug: 'rainwater',
-    image: '/rain_water.png',  
+    image: '/rainwater-harvesting-vector-icon-sustainable-260nw-2506520391.webp',  
     icon: '🌧️',
     gradient: 'linear-gradient(135deg, #4338ca, #6366f1)',
     shadow: 'rgba(99,102,241,0.3)',
