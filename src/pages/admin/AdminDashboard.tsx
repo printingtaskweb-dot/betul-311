@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
 import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users } from 'lucide-react';
 
+
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
