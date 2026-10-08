@@ -41,17 +41,9 @@ interface StaffMatch {
   tier: number | null; supervisor_id: string | null; distance_km: number | null;
 }
 
-type Stage = 'account' | 'city' | 'role' | 'officer' | 'details' | 'pending';
-type Kind = 'department' | 'authority';
+type Stage = 'account' | 'city' | 'role' | 'level' | 'officer' | 'details' | 'pending';
 
 const PRIORITY_CITIES = ['betul', 'bhopal', 'chhindwara', 'indore'];
-
-const TIER_LABEL: Record<number, string> = {
-  1: 'Department Head',
-  2: 'Area / Zone Officer',
-  3: 'Supervisor',
-  4: 'Operational Staff',
-};
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -71,11 +63,13 @@ export default function DeptLogin() {
   /* city */
   const [selectedCity, setSelectedCity] = useState('');
 
-  /* role */
-  const [kind, setKind] = useState<Kind>('department');
-  const [selectedDept, setSelectedDept] = useState('');
-  const [selectedDesig, setSelectedDesig] = useState<Designation | null>(null);
+  /* role — one of: '', 'municipal_commissioner', 'deputy_commissioner', 'dept:<uuid>' */
+  const [roleKey, setRoleKey] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');       // uuid when dept
   const [selectedAuthority, setSelectedAuthority] = useState<AuthorityRole | null>(null);
+
+  /* level */
+  const [selectedDesig, setSelectedDesig] = useState<Designation | null>(null);
 
   /* officer */
   const [supervisor, setSupervisor] = useState<StaffMatch | null>(null);
@@ -135,8 +129,12 @@ export default function DeptLogin() {
       'dept_staff', 'admin', 'department_head', 'supervisor', 'control_room',
       'management_viewer', 'field_employee', 'municipal_administrator',
     ];
-    if (staffRoles.includes(profile.role)) navigate('/dept/dashboard', { replace: true });
-    else if (profile.role === 'pending_staff') setStage('pending');
+    const role = profile.role;
+    if (role && staffRoles.includes(role)) {
+      navigate('/dept/dashboard', { replace: true });
+    } else if (role === 'pending_staff') {
+      setStage('pending');
+    }
   }, [user, profile, navigate]);
 
   /* ---------------------------------------------------------------- */
@@ -145,35 +143,43 @@ export default function DeptLogin() {
   const isLoggedIn = !!user;
 
   const sortedCities = [...cities].sort((a, b) => {
-    const ai = PRIORITY_CITIES.indexOf(a.name.toLowerCase());
-    const bi = PRIORITY_CITIES.indexOf(b.name.toLowerCase());
+    const ai = PRIORITY_CITIES.indexOf((a.name || '').toLowerCase());
+    const bi = PRIORITY_CITIES.indexOf((b.name || '').toLowerCase());
     if (ai >= 0 && bi >= 0) return ai - bi;
     if (ai >= 0) return -1;
     if (bi >= 0) return 1;
-    return a.name.localeCompare(b.name);
+    return (a.name || '').localeCompare(b.name || '');
   });
 
+  const isDeptRole = roleKey.startsWith('dept:');
+  const isAuthorityRole = roleKey === 'municipal_commissioner' || roleKey === 'deputy_commissioner';
+
+  /* do we need the officer step? */
   const needsOfficer = (() => {
-    if (kind === 'authority') {
-      return selectedAuthority ? !['platform_admin', 'mayor'].includes(selectedAuthority.code) : true;
+    if (roleKey === 'municipal_commissioner') return false; // top role
+    if (roleKey === 'deputy_commissioner') return true;
+    if (isDeptRole) {
+      // department_head may skip (SQL allows null supervisor for it)
+      return selectedDesig ? selectedDesig.tier !== 1 : true;
     }
-    return selectedDesig ? selectedDesig.tier !== 1 : true;
+    return true;
   })();
 
-  const steps = needsOfficer
-    ? ['account', 'city', 'role', 'officer', 'details']
-    : ['account', 'city', 'role', 'details'];
-  const stepIdx = steps.indexOf(stage);
+  /* which stages are in the flow */
+  const flow: Stage[] = ['account', 'city', 'role'];
+  if (isDeptRole) flow.push('level');
+  if (needsOfficer) flow.push('officer');
+  flow.push('details');
+
+  const stepIdx = flow.indexOf(stage);
 
   /* ---------------------------------------------------------------- */
   /*  Handlers                                                         */
   /* ---------------------------------------------------------------- */
   const goBack = () => {
     setError('');
-    if (stage === 'city') setStage('account');
-    else if (stage === 'role') setStage('city');
-    else if (stage === 'officer') setStage('role');
-    else if (stage === 'details') setStage(needsOfficer ? 'officer' : 'role');
+    const i = flow.indexOf(stage);
+    if (i > 0) setStage(flow[i - 1]);
   };
 
   const detectLocation = () => {
@@ -189,8 +195,9 @@ export default function DeptLogin() {
         const { data } = await supabase.rpc('nearest_city', {
           p_lat: lat, p_lng: lng, p_max_km: 200,
         });
-        const nc = (data as any[] | null)?.[0];
-        if (nc?.id) setSelectedCity(nc.id);
+        const list = (data as any[] | null) ?? [];
+        const nc = list[0];
+        if (nc && nc.id) setSelectedCity(nc.id as string);
         setGeoLoading(false);
       },
       () => {
@@ -211,9 +218,9 @@ export default function DeptLogin() {
       const { data, error: e } = await supabase.rpc('search_approvers_for_signup', {
         p_search:        searchTerm.trim(),
         p_city_id:       selectedCity || null,
-        p_department_id: kind === 'department' ? (selectedDept || null) : null,
-        p_lat:           coords?.lat ?? null,
-        p_lng:           coords?.lng ?? null,
+        p_department_id: isDeptRole ? (selectedDept || null) : null,
+        p_lat:           coords ? coords.lat : null,
+        p_lng:           coords ? coords.lng : null,
         p_limit:         25,
       });
       if (e) throw e;
@@ -237,16 +244,19 @@ export default function DeptLogin() {
     setError(''); setStage('role');
   };
 
-  const goToOfficer = () => {
-    if (kind === 'department') {
-      if (!selectedDept)  { setError(hi ? 'कृपया विभाग चुनें' : 'Please select a department'); return; }
-      if (!selectedDesig) { setError(hi ? 'कृपया पद चुनें' : 'Please select a designation'); return; }
-    } else {
-      if (!selectedAuthority) { setError(hi ? 'कृपया भूमिका चुनें' : 'Please select a role'); return; }
-    }
+  const goToNextFromRole = () => {
+    if (!roleKey) { setError(hi ? 'कृपया भूमिका चुनें' : 'Please select a role'); return; }
     setError('');
-    if (!needsOfficer) { setStage('details'); return; }
-    setStage('officer');
+    if (isDeptRole) setStage('level');
+    else if (needsOfficer) setStage('officer');
+    else setStage('details');
+  };
+
+  const goToOfficerFromLevel = () => {
+    if (!selectedDesig) { setError(hi ? 'कृपया स्तर चुनें' : 'Please select a level'); return; }
+    setError('');
+    if (needsOfficer) setStage('officer');
+    else setStage('details');
   };
 
   const goToDetails = () => {
@@ -301,32 +311,32 @@ export default function DeptLogin() {
         phone: phone.trim() || null,
         role: 'pending_staff',
         city_id: selectedCity || null,
-        supervisor_id: supervisor?.id || null,
-        linked_department_id: kind === 'department' ? selectedDept : null,
-        designation_id: kind === 'department' ? (selectedDesig?.designation_id ?? null) : null,
-        latitude:  coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
+        supervisor_id: supervisor ? supervisor.id : null,
+        linked_department_id: isDeptRole ? selectedDept : null,
+        designation_id: isDeptRole && selectedDesig ? selectedDesig.designation_id : null,
+        latitude:  coords ? coords.lat : null,
+        longitude: coords ? coords.lng : null,
         approval_status: 'pending',
       });
       if (upsertErr) throw upsertErr;
 
-      if (kind === 'department') {
+      if (isDeptRole) {
         const { error: rpcErr } = await supabase.rpc('register_as_staff', {
-          target_role:    selectedDesig!.maps_to_role ?? 'dept_staff',
+          target_role:    (selectedDesig && selectedDesig.maps_to_role) || 'dept_staff',
           department_id:  selectedDept,
           city_id:        selectedCity,
-          supervisor_id:  supervisor?.id || null,
+          supervisor_id:  supervisor ? supervisor.id : null,
           full_name:      fullName.trim(),
           phone:          phone.trim() || null,
-          designation_id: selectedDesig!.designation_id,
+          designation_id: selectedDesig ? selectedDesig.designation_id : null,
           zone_id:        null,
         });
         if (rpcErr) throw rpcErr;
       } else {
         const { error: rpcErr } = await supabase.rpc('register_authority_user', {
-          p_authority_role: selectedAuthority!.code,
+          p_authority_role: roleKey,
           p_city_id:        selectedCity,
-          p_supervisor_id:  supervisor?.id || null,
+          p_supervisor_id:  supervisor ? supervisor.id : null,
           p_full_name:      fullName.trim(),
           p_phone:          phone.trim() || null,
           p_designation_id: null,
@@ -346,8 +356,8 @@ export default function DeptLogin() {
     await signOut();
     setStage('account'); setAccountType('existing');
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
-    setSelectedCity(''); setSelectedDept(''); setSelectedDesig(null);
-    setSelectedAuthority(null); setSupervisor(null);
+    setSelectedCity(''); setRoleKey(''); setSelectedDept('');
+    setSelectedDesig(null); setSelectedAuthority(null); setSupervisor(null);
     setSearchResults([]); setSearchTerm(''); setError('');
   };
 
@@ -366,7 +376,7 @@ export default function DeptLogin() {
   };
 
   /* ---------------------------------------------------------------- */
-  /*  PENDING screen                                                   */
+  /*  Pending screen                                                   */
   /* ---------------------------------------------------------------- */
   if (stage === 'pending') {
     return (
@@ -381,34 +391,6 @@ export default function DeptLogin() {
           <p style={{ margin: '0 0 20px', fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.7 }}>
             {hi ? 'आपका आवेदन सीनियर अधिकारी को भेजा गया है।' : 'Your application has been sent to your senior officer.'}
           </p>
-          <div style={{ padding: '14px 18px', background: '#f0fdf4', borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0', marginBottom: 22, textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <CheckCircle size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <p style={{ margin: '0 0 4px', fontWeight: 800, fontSize: '0.85rem', color: '#15803d' }}>
-                  {hi ? 'आवेदन सारांश' : 'Application Summary'}
-                </p>
-                {selectedDesig && (
-                  <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
-                    {hi ? 'पद:' : 'Designation:'}{' '}
-                    <b>{hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}</b>
-                  </p>
-                )}
-                {selectedAuthority && (
-                  <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
-                    {hi ? 'भूमिका:' : 'Role:'}{' '}
-                    <b>{hi && selectedAuthority.name_hi ? selectedAuthority.name_hi : selectedAuthority.name}</b>
-                  </p>
-                )}
-                {supervisor && (
-                  <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#065f46' }}>
-                    {hi ? 'रिपोर्टिंग:' : 'Reports to:'} <b>{supervisor.full_name}</b>
-                    {supervisor.staff_code ? ` (${supervisor.staff_code})` : ''}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
           <button onClick={() => navigate('/')} style={S.btnPrimary}>
             {hi ? 'होम पर जाएं' : 'Go to Home'}
           </button>
@@ -443,7 +425,7 @@ export default function DeptLogin() {
 
         {/* progress bar */}
         <div style={{ display: 'flex', gap: 3, padding: '0 24px', marginTop: 16 }}>
-          {steps.map((s, i) => (
+          {flow.map((s, i) => (
             <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= stepIdx ? '#16a34a' : 'var(--gray-200)' }} />
           ))}
         </div>
@@ -491,11 +473,9 @@ export default function DeptLogin() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                <button type="button" onClick={goToCity} style={{ ...S.btnPrimary, flex: 1 }}>
-                  {hi ? 'आगे' : 'Continue'} <ArrowRight size={15} />
-                </button>
-              </div>
+              <button type="button" onClick={goToCity} style={{ ...S.btnPrimary, marginTop: 8 }}>
+                {hi ? 'आगे' : 'Continue'} <ArrowRight size={15} />
+              </button>
             </>
           )}
 
@@ -510,7 +490,7 @@ export default function DeptLogin() {
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                {sortedCities.filter(c => PRIORITY_CITIES.includes(c.name.toLowerCase())).map(c => (
+                {sortedCities.filter(c => PRIORITY_CITIES.indexOf((c.name || '').toLowerCase()) >= 0).map(c => (
                   <button key={c.id} type="button" onClick={() => setSelectedCity(c.id)}
                     style={{
                       padding: '16px 12px',
@@ -534,14 +514,14 @@ export default function DeptLogin() {
                 ))}
               </div>
 
-              {sortedCities.filter(c => !PRIORITY_CITIES.includes(c.name.toLowerCase())).length > 0 && (
+              {sortedCities.filter(c => PRIORITY_CITIES.indexOf((c.name || '').toLowerCase()) < 0).length > 0 && (
                 <div style={{ marginBottom: 12 }}>
                   <label style={S.label}>{hi ? 'अन्य शहर' : 'Other cities'}</label>
                   <div style={{ position: 'relative' }}>
                     <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)}
                       style={{ ...S.select, color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)' }}>
                       <option value="">{hi ? '— चुनें —' : '— Select —'}</option>
-                      {sortedCities.filter(c => !PRIORITY_CITIES.includes(c.name.toLowerCase())).map(c => (
+                      {sortedCities.filter(c => PRIORITY_CITIES.indexOf((c.name || '').toLowerCase()) < 0).map(c => (
                         <option key={c.id} value={c.id}>{c.name}, {c.state}</option>
                       ))}
                     </select>
@@ -575,102 +555,100 @@ export default function DeptLogin() {
                 {hi ? 'भूमिका चुनें' : 'Select your role'}
               </h2>
               <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                {hi ? 'विभाग स्टाफ या प्राधिकरण' : 'Department staff or authority'}
+                {hi ? 'अधिकारी चुनें या विभाग चुनें' : 'Pick an officer role or a department'}
               </p>
 
-              <div style={S.toggleRow}>
-                <button type="button" onClick={() => { setKind('department'); setSelectedAuthority(null); }}
-                  style={S.toggleBtn(kind === 'department')}>
-                  <Building2 size={14} /> {hi ? 'विभाग' : 'Department'}
-                </button>
-                <button type="button" onClick={() => { setKind('authority'); setSelectedDesig(null); setSelectedDept(''); }}
-                  style={S.toggleBtn(kind === 'authority')}>
-                  <Crown size={14} /> {hi ? 'प्राधिकरण' : 'Authority'}
-                </button>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Crown size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                <select
+                  value={roleKey}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setRoleKey(v);
+                    setSelectedDesig(null);
+                    setSupervisor(null);
+                    if (v.startsWith('dept:')) {
+                      setSelectedDept(v.slice(5));
+                      setSelectedAuthority(null);
+                    } else {
+                      setSelectedDept('');
+                      const a = authorityRoles.find(r => r.code === v);
+                      setSelectedAuthority(a ?? null);
+                    }
+                  }}
+                  style={{ ...S.select, color: roleKey ? 'var(--gray-900)' : 'var(--gray-400)' }}>
+                  <option value="">{hi ? '— भूमिका चुनें —' : '— Select Role —'}</option>
+                  <optgroup label={hi ? 'प्राधिकरण' : 'Authority'}>
+                    <option value="municipal_commissioner">
+                      {hi ? 'नगर आयुक्त (Municipal Commissioner)' : 'Municipal Commissioner'}
+                    </option>
+                    <option value="deputy_commissioner">
+                      {hi ? 'उप आयुक्त (Deputy Commissioner)' : 'Deputy Commissioner'}
+                    </option>
+                  </optgroup>
+                  <optgroup label={hi ? 'विभाग' : 'Departments'}>
+                    {departments.map(d => (
+                      <option key={d.id} value={`dept:${d.id}`}>{d.icon} {d.name}</option>
+                    ))}
+                  </optgroup>
+                </select>
+                <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
               </div>
 
-              {/* department branch */}
-              {kind === 'department' && (
-                <>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={S.label}>{hi ? 'विभाग *' : 'Department *'}</label>
-                    <div style={{ position: 'relative' }}>
-                      <Building2 size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                      <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)}
-                        style={{ ...S.select, color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)' }}>
-                        <option value="">{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
-                        {departments.map(d => (
-                          <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                    </div>
-                  </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button type="button" onClick={goBack} style={S.btnSecondary}>
+                  <ChevronLeft size={15} />
+                </button>
+                <button type="button" onClick={goToNextFromRole} style={{ ...S.btnPrimary, flex: 1 }}>
+                  {hi ? 'आगे' : 'Continue'} <ArrowRight size={15} />
+                </button>
+              </div>
+            </>
+          )}
 
-                  {selectedDept && (
-                    <div style={{ marginBottom: 14 }}>
-                      <label style={S.label}>{hi ? 'पद *' : 'Designation *'}</label>
-                      {designations.length === 0 ? (
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                          {hi ? 'इस विभाग में कोई पद उपलब्ध नहीं है।'
-                              : 'No designations available for this department.'}
-                        </p>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {designations.map(d => {
-                            const active = selectedDesig?.designation_id === d.designation_id;
-                            return (
-                              <button key={d.designation_id} type="button" onClick={() => setSelectedDesig(d)}
-                                style={{
-                                  padding: '12px 14px',
-                                  border: active ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
-                                  borderRadius: 'var(--radius-md)',
-                                  background: active ? '#f0fdf4' : '#fff',
-                                  cursor: 'pointer', textAlign: 'left',
-                                  display: 'flex', alignItems: 'center', gap: 10,
-                                }}>
-                                <Briefcase size={16} color={active ? '#16a34a' : '#9ca3af'} />
-                                <div>
-                                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: active ? '#15803d' : 'var(--gray-800)' }}>
-                                    {hi && d.name_hi ? d.name_hi : d.name}
-                                  </p>
-                                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>
-                                    {TIER_LABEL[d.tier] || `Tier ${d.tier}`}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
+          {/* ===================== LEVEL ===================== */}
+          {stage === 'level' && (
+            <>
+              <h2 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 900 }}>
+                {hi ? 'अपना स्तर चुनें' : 'Select your level'}
+              </h2>
+              <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+                {departments.find(d => d.id === selectedDept)?.name || ''}
+                {' — '}
+                {hi ? 'विभाग श्रृंखला' : 'department chain'}
+              </p>
+
+              {designations.length === 0 ? (
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+                  {hi ? 'इस विभाग में कोई स्तर उपलब्ध नहीं है।'
+                      : 'No levels available for this department.'}
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {designations.map(d => {
+                    const active = selectedDesig?.designation_id === d.designation_id;
+                    return (
+                      <button key={d.designation_id} type="button" onClick={() => setSelectedDesig(d)}
+                        style={{
+                          padding: '12px 14px',
+                          border: active ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
+                          borderRadius: 'var(--radius-md)',
+                          background: active ? '#f0fdf4' : '#fff',
+                          cursor: 'pointer', textAlign: 'left',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                        }}>
+                        <Briefcase size={16} color={active ? '#16a34a' : '#9ca3af'} />
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: active ? '#15803d' : 'var(--gray-800)' }}>
+                            {hi && d.name_hi ? d.name_hi : d.name}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>
+                            {d.hierarchy_code ? d.hierarchy_code.replace(/_/g, ' ') : `Tier ${d.tier}`}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* authority branch */}
-              {kind === 'authority' && (
-                <div style={{ marginBottom: 14 }}>
-                  <label style={S.label}>{hi ? 'प्राधिकरण भूमिका *' : 'Authority Role *'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Crown size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                    <select value={selectedAuthority?.code ?? ''}
-                      onChange={e => setSelectedAuthority(authorityRoles.find(x => x.code === e.target.value) ?? null)}
-                      style={{ ...S.select, color: selectedAuthority ? 'var(--gray-900)' : 'var(--gray-400)' }}>
-                      <option value="">{hi ? '— भूमिका चुनें —' : '— Select Role —'}</option>
-                      {authorityRoles.map(r => (
-                        <option key={r.code} value={r.code}>
-                          {hi && r.name_hi ? r.name_hi : r.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
-                  </div>
-                  {selectedAuthority?.description && (
-                    <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', fontStyle: 'italic' }}>
-                      {selectedAuthority.description}
-                    </p>
-                  )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -678,7 +656,7 @@ export default function DeptLogin() {
                 <button type="button" onClick={goBack} style={S.btnSecondary}>
                   <ChevronLeft size={15} />
                 </button>
-                <button type="button" onClick={goToOfficer} style={{ ...S.btnPrimary, flex: 1 }}>
+                <button type="button" onClick={goToOfficerFromLevel} style={{ ...S.btnPrimary, flex: 1 }}>
                   {needsOfficer ? (hi ? 'आगे' : 'Continue') : (hi ? 'विवरण' : 'Details')}{' '}
                   <ArrowRight size={15} />
                 </button>
@@ -791,30 +769,32 @@ export default function DeptLogin() {
                   {hi ? 'आवेदन सारांश' : 'Application Summary'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
-                    <b>{hi ? 'प्रकार:' : 'Type:'}</b>{' '}
-                    {kind === 'department' ? (hi ? 'विभाग' : 'Department') : (hi ? 'प्राधिकरण' : 'Authority')}
-                  </p>
                   {cities.find(c => c.id === selectedCity) && (
                     <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
                       <b>{hi ? 'शहर:' : 'City:'}</b> {cities.find(c => c.id === selectedCity)?.name}
                     </p>
                   )}
-                  {kind === 'department' && selectedDept && (
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
-                      <b>{hi ? 'विभाग:' : 'Dept:'}</b> {departments.find(d => d.id === selectedDept)?.name}
-                    </p>
+                  {isDeptRole && (
+                    <>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
+                        <b>{hi ? 'विभाग:' : 'Dept:'}</b> {departments.find(d => d.id === selectedDept)?.name}
+                      </p>
+                      {selectedDesig && (
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
+                          <b>{hi ? 'स्तर:' : 'Level:'}</b>{' '}
+                          {hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}
+                        </p>
+                      )}
+                    </>
                   )}
-                  {kind === 'department' && selectedDesig && (
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
-                      <b>{hi ? 'पद:' : 'Designation:'}</b>{' '}
-                      {hi && selectedDesig.name_hi ? selectedDesig.name_hi : selectedDesig.name}
-                    </p>
-                  )}
-                  {kind === 'authority' && selectedAuthority && (
+                  {!isDeptRole && roleKey && (
                     <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
                       <b>{hi ? 'भूमिका:' : 'Role:'}</b>{' '}
-                      {hi && selectedAuthority.name_hi ? selectedAuthority.name_hi : selectedAuthority.name}
+                      {roleKey === 'municipal_commissioner'
+                        ? (hi ? 'नगर आयुक्त' : 'Municipal Commissioner')
+                        : roleKey === 'deputy_commissioner'
+                        ? (hi ? 'उप आयुक्त' : 'Deputy Commissioner')
+                        : roleKey}
                     </p>
                   )}
                   {supervisor && (
