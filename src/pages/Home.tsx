@@ -7,10 +7,10 @@ import { StatsSection } from '../components/StatsSection';
 import { ServicesGrid } from '../components/ServicesGrid';
 import { RecentComplaints } from '../components/RecentComplaints';
 import { BottomNav } from '../components/BottomNav';
-import { Globe, LogOut, ShieldAlert, Building2 } from 'lucide-react';
+import { Globe, LogOut, Building2 } from 'lucide-react';
 
 export const Home: React.FC = () => {
-  const { language, setLanguage, user, profile, isAdmin, signOut } = useAuth();
+  const { language, setLanguage, user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -112,29 +112,9 @@ export const Home: React.FC = () => {
               <Building2 size={15} />
               {language === 'hi' ? 'विभाग पोर्टल' : 'Dept Portal'}
             </Link>
-            {isAdmin && (
-              <Link
-                to="/admin/dashboard"
-                style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  color: 'var(--theme-primary, #660033)',
-                  background: 'var(--theme-component, #d9d9d9)',
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--theme-component-border, #bfbfbf)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <ShieldAlert size={15} />
-                {t(language, 'adminDashboard')}
-              </Link>
-            )}
           </nav>
 
-          {/* Actions: Language Toggle, Admin badge, Profile/Auth */}
+          {/* Actions: Language Toggle, Profile/Auth */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Language toggle */}
             <button
@@ -158,31 +138,6 @@ export const Home: React.FC = () => {
               <Globe size={14} />
               {language === 'en' ? 'हिन्दी' : 'English'}
             </button>
-
-            {/* Admin Badge & Direct Button - ONLY VISIBLE TO ADMIN USER */}
-            {isAdmin && (
-              <Link
-                to="/admin/dashboard"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
-                  color: '#fff',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(102,0,51,0.3)',
-                }}
-                className="admin-badge-pulse"
-                title="Municipal Admin Panel"
-              >
-                <ShieldAlert size={14} />
-                <span>Admin</span>
-              </Link>
-            )}
 
             {/* User Avatar / Login */}
             {user ? (
@@ -432,48 +387,6 @@ export const Home: React.FC = () => {
 
       {/* ── Recent Complaints Activity ── */}
       <RecentComplaints />
-
-      {/* ── Admin Dashboard Access: ONLY SHOWN IF USER IS ADMIN ── */}
-      {isAdmin && (
-        <section className="app-container" style={{ textAlign: 'center', marginTop: 12, marginBottom: 20 }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--indigo-50)',
-              border: '1.5px dashed var(--indigo-500)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <ShieldAlert size={22} color="var(--indigo-600)" />
-            <div style={{ textAlign: 'left' }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--indigo-900)' }}>
-                {language === 'hi' ? 'आप एडमिन के रूप में लॉगिन हैं' : 'Logged in as Municipal Administrator'}
-              </p>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--indigo-600)' }}>
-                {user?.email || 'ouikey41@gmail.com'}
-              </p>
-            </div>
-            <Link
-              to="/admin/dashboard"
-              style={{
-                marginLeft: 12,
-                padding: '8px 16px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--indigo-600)',
-                color: '#fff',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              {t(language, 'adminDashboard')} →
-            </Link>
-          </div>
-        </section>
-      )}
 
       {/* ── Municipal Portal Quick Links / Footer ── */}
       <footer className="app-container" style={{ marginTop: 24, marginBottom: 20 }}>
