@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
@@ -7,7 +7,6 @@ import StaffApprovals from '../../components/admin/StaffApprovals';
 import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
 import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users } from 'lucide-react';
-
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -25,27 +24,25 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [user, isAdmin, authLoading, navigate]);
 
-  // Pending count for sidebar badge (same source as the StaffApprovals list)
-  useEffect(() => {
-    const fetchPendingCount = async () => {
-      try {
-        const { data, error } = await supabase.rpc('list_pending_approvals', { p_city_id: null });
-        if (!error && Array.isArray(data)) {
-          setPendingStaffCount(data.length);
-          return;
-        }
-        // Fallback to direct count if the RPC fails
-        const { count } = await supabase
-          .from('user_profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'pending_staff');
-        if (count !== null) setPendingStaffCount(count);
-      } catch (e) {
-        console.error(e);
+  // Pending staff count (uses the approval-queue function, same list the
+  // Staff Approvals tab shows, so the badge always matches)
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('list_pending_approvals', { p_city_id: null });
+      if (error) {
+        console.error(error);
+        setPendingStaffCount(0);
+        return;
       }
-    };
-    fetchPendingCount();
-  }, [activeTab]);
+      setPendingStaffCount(((data as unknown[] | null) ?? []).length);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && isAdmin) void fetchPendingCount();
+  }, [activeTab, user, isAdmin, fetchPendingCount]);
 
   const handleLogout = async () => {
     await signOut();
@@ -322,16 +319,16 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                   <div>
                     <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
-                      Department Staff Registrations
+                      Staff Approvals &amp; Roles
                     </h2>
                     <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>
-                      Review and approve officers and field workers registered for municipal departments
+                      Approve or reject registrations, and update the role, department and level of existing staff
                     </p>
                   </div>
                 </div>
               </div>
 
-              <StaffApprovals />
+              <StaffApprovals onChanged={() => void fetchPendingCount()} />
             </div>
           ) : (
             <div>
