@@ -3,26 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Building2, Mail, Lock, LogIn, Eye, EyeOff,
-  ShieldCheck, ArrowRight, User, Phone, ChevronDown,
-  Clock, CheckCircle, AlertCircle, ArrowUpCircle, LogOut,
-  Search, MapPin, X, BadgeCheck
+  Building2, Mail, Lock, LogIn, ShieldCheck, ArrowRight,
+  User, Phone, ChevronDown, Clock, CheckCircle,
+  ArrowUpCircle, LogOut, Search, MapPin, X, BadgeCheck,
+  AlertCircle,
 } from 'lucide-react';
 
-interface Department {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-}
+import { FormInput } from '../components/auth/FormInput';
+import { PasswordInput } from '../components/auth/PasswordInput';
+import { AlertBanner } from '../components/auth/AlertBanner';
 
-interface City {
-  id: string;
-  name: string;
-  state: string | null;
-  slug: string | null;
-}
-
+interface Department { id: string; name: string; slug: string; icon: string; }
+interface City { id: string; name: string; state: string | null; slug: string | null; }
 interface StaffMatch {
   id: string;
   full_name: string | null;
@@ -36,20 +28,21 @@ interface StaffMatch {
 }
 
 const REQUESTABLE_ROLES = [
-  { value: 'department_head',   label: 'Department Head',   needsCity: true,  needsDept: true,  needsSupervisor: false, color: '#7c3aed' },
-  { value: 'supervisor',        label: 'Supervisor',        needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#2563eb' },
-  { value: 'control_room',      label: 'Control Room',      needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#0891b2' },
-  { value: 'management_viewer', label: 'Management Viewer', needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#db2777' },
-  { value: 'field_employee',    label: 'Field Employee',    needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#16a34a' },
-  { value: 'dept_staff',        label: 'Department Staff',  needsCity: true,  needsDept: true,  needsSupervisor: true,  color: '#ca8a04' },
+  { value: 'department_head',   label: 'Department Head',   needsSupervisor: false, color: '#7c3aed' },
+  { value: 'supervisor',        label: 'Supervisor',        needsSupervisor: true,  color: '#2563eb' },
+  { value: 'control_room',      label: 'Control Room',      needsSupervisor: true,  color: '#0891b2' },
+  { value: 'management_viewer', label: 'Management Viewer', needsSupervisor: true,  color: '#db2777' },
+  { value: 'field_employee',    label: 'Field Employee',    needsSupervisor: true,  color: '#16a34a' },
+  { value: 'dept_staff',        label: 'Department Staff',  needsSupervisor: true,  color: '#ca8a04' },
 ];
+
+type Mode = 'login' | 'register' | 'upgrade' | 'pending';
 
 export default function DeptLogin() {
   const { user, profile, refreshProfile, signOut, language } = useAuth();
   const navigate = useNavigate();
   const hi = language === 'hi';
 
-  type Mode = 'login' | 'register' | 'upgrade' | 'pending';
   const [mode, setMode] = useState<Mode>('login');
   const [registerType, setRegisterType] = useState<'existing' | 'new'>('existing');
 
@@ -57,9 +50,8 @@ export default function DeptLogin() {
   const [password, setPassword]   = useState('');
   const [fullName, setFullName]   = useState('');
   const [phone, setPhone]         = useState('');
-  const [showPw, setShowPw]       = useState(false);
   const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [error, setError]         = useState('');
 
   const [cities, setCities]             = useState<City[]>([]);
   const [departments, setDepartments]   = useState<Department[]>([]);
@@ -86,7 +78,7 @@ export default function DeptLogin() {
     if (!user) return;
     const staffRoles = [
       'dept_staff','admin','department_head','supervisor','control_room',
-      'management_viewer','field_employee','municipal_administrator'
+      'management_viewer','field_employee','municipal_administrator',
     ];
     if (profile && staffRoles.includes(profile.role)) {
       navigate('/dept/dashboard', { replace: true });
@@ -100,17 +92,6 @@ export default function DeptLogin() {
     }
   }, [user, profile, navigate]);
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '11px 14px 11px 40px',
-    border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
-    fontSize: '0.9rem', background: '#fff', outline: 'none',
-    boxSizing: 'border-box', fontFamily: 'var(--font-primary)',
-  };
-  const iconStyle: React.CSSProperties = {
-    position: 'absolute', left: 13, top: '50%',
-    transform: 'translateY(-50%)', color: 'var(--gray-400)',
-    pointerEvents: 'none',
-  };
   const labelStyle: React.CSSProperties = {
     display: 'block', fontWeight: 700, fontSize: '0.82rem',
     marginBottom: 6, color: 'var(--gray-700)',
@@ -118,8 +99,7 @@ export default function DeptLogin() {
 
   const runSearch = async () => {
     if (!searchTerm.trim() && !selectedCity && !selectedDept) {
-      setSearchResults([]);
-      return;
+      setSearchResults([]); return;
     }
     setSearching(true);
     try {
@@ -132,9 +112,7 @@ export default function DeptLogin() {
       setSearchResults(data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setSearching(false);
-    }
+    } finally { setSearching(false); }
   };
 
   const pickSupervisor = (match: StaffMatch) => {
@@ -149,7 +127,7 @@ export default function DeptLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); setLoading(true);
+    setError(''); setLoading(true);
     try {
       const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
       if (authErr) throw authErr;
@@ -159,7 +137,7 @@ export default function DeptLogin() {
 
       const staffRoles = [
         'dept_staff','admin','department_head','supervisor','control_room',
-        'management_viewer','field_employee','municipal_administrator'
+        'management_viewer','field_employee','municipal_administrator',
       ];
 
       if (userProf && staffRoles.includes(userProf.role)) {
@@ -170,11 +148,9 @@ export default function DeptLogin() {
         if (userProf?.full_name) setFullName(userProf.full_name);
         if (userProf?.phone) setPhone(userProf.phone);
         setMode('upgrade');
-        setError(
-          hi
-            ? 'आपका खाता एक नागरिक के रूप में पंजीकृत है। कृपया विभाग स्टाफ में अपग्रेड करने के लिए नीचे फॉर्म भरें।'
-            : 'Welcome! Your account is registered as a citizen. Please complete the form below to upgrade to staff.'
-        );
+        setError(hi
+          ? 'आपका खाता नागरिक के रूप में है। कृपया नीचे फॉर्म भरकर स्टाफ में जुड़ें।'
+          : 'Your account is a citizen account. Please complete the form to join as staff.');
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -182,18 +158,14 @@ export default function DeptLogin() {
   };
 
   const submitRegistration = async (isNewAccount: boolean) => {
-    setError(null);
+    setError('');
     const roleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
     if (!roleConf) { setError('Invalid role'); return; }
 
-    if (roleConf.needsCity && !selectedCity) {
-      setError(hi ? 'कृपया शहर चुनें' : 'Please select your city'); return;
-    }
-    if (roleConf.needsDept && !selectedDept) {
-      setError(hi ? 'कृपया विभाग चुनें' : 'Please select your department'); return;
-    }
+    if (!selectedCity) { setError(hi ? 'कृपया शहर चुनें' : 'Please select your city'); return; }
+    if (!selectedDept) { setError(hi ? 'कृपया विभाग चुनें' : 'Please select your department'); return; }
     if (roleConf.needsSupervisor && !supervisor) {
-      setError(hi ? 'कृपया अपने सुपरवाइज़र को खोजें और चुनें' : 'Please search and select your supervisor');
+      setError(hi ? 'कृपया सुपरवाइज़र खोजें और चुनें' : 'Please search and select your supervisor');
       return;
     }
 
@@ -204,18 +176,16 @@ export default function DeptLogin() {
 
       if (isNewAccount) {
         const { data, error: signErr } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
-          password,
+          email: email.trim().toLowerCase(), password,
         });
         if (signErr) {
           if (signErr.message.toLowerCase().includes('already registered') ||
               signErr.message.toLowerCase().includes('already exists')) {
             setRegisterType('existing');
             setError(hi
-              ? 'यह ईमेल पहले से पंजीकृत है! कृपया पासवर्ड डालकर अपग्रेड करें।'
+              ? 'यह ईमेल पहले से पंजीकृत है! पासवर्ड डालकर अपग्रेड करें।'
               : 'This email is already registered! Enter password to upgrade.');
-            setLoading(false);
-            return;
+            setLoading(false); return;
           }
           throw signErr;
         }
@@ -223,8 +193,7 @@ export default function DeptLogin() {
         targetEmail = data.user?.email || email;
       } else if (!targetUserId) {
         const { data: signinData, error: signinErr } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
+          email: email.trim().toLowerCase(), password,
         });
         if (signinErr) throw signinErr;
         targetUserId = signinData.user.id;
@@ -262,26 +231,20 @@ export default function DeptLogin() {
     } finally { setLoading(false); }
   };
 
-  const handleUpgradeExisting = (e: React.FormEvent) => {
-    e.preventDefault();
-    submitRegistration(false);
-  };
-  const handleRegisterNew = (e: React.FormEvent) => {
-    e.preventDefault();
-    submitRegistration(true);
-  };
+  const handleUpgradeExisting = (e: React.FormEvent) => { e.preventDefault(); submitRegistration(false); };
+  const handleRegisterNew     = (e: React.FormEvent) => { e.preventDefault(); submitRegistration(true);  };
 
   const handleSignOutUser = async () => {
     await signOut();
     setMode('login');
     setEmail(''); setPassword(''); setFullName(''); setPhone('');
     setSelectedCity(''); setSelectedDept(''); setSelectedRole('field_employee');
-    setSupervisor(null); setError(null);
+    setSupervisor(null); setError('');
   };
 
   const selectedRoleConf = REQUESTABLE_ROLES.find(r => r.value === selectedRole);
 
-  // ── PENDING SCREEN ───────────────────────────────────────────
+  // ───────────── PENDING SCREEN ─────────────
   if (mode === 'pending') {
     return (
       <div style={{
@@ -300,15 +263,14 @@ export default function DeptLogin() {
           }}>
             <Clock size={32} color="#d97706" />
           </div>
-          <h2 style={{ margin: '0 0 10px', fontSize: '1.25rem', fontWeight: 900, color: 'var(--gray-900)' }}>
+          <h2 style={{ margin: '0 0 10px', fontSize: '1.25rem', fontWeight: 900 }}>
             {hi ? 'अनुमोदन की प्रतीक्षा' : 'Awaiting Approval'}
           </h2>
           <p style={{ margin: '0 0 20px', fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.7 }}>
             {hi
-              ? 'आपका आवेदन आपके चुने हुए सुपरवाइज़र तक पहुँचा दिया गया है।'
-              : 'Your application has been forwarded to your selected supervisor / approver.'}
+              ? 'आपका आवेदन आपके सुपरवाइज़र / एडमिन तक भेज दिया गया है।'
+              : 'Your application has been forwarded to your supervisor / admin.'}
           </p>
-
           <div style={{
             padding: '14px 18px', background: '#f0fdf4', borderRadius: 'var(--radius-md)',
             border: '1.5px solid #bbf7d0', marginBottom: 22, textAlign: 'left',
@@ -326,34 +288,25 @@ export default function DeptLogin() {
                   </p>
                 )}
                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#065f46' }}>
-                  {hi ? 'भूमिका:' : 'Requested role:'} <b>{selectedRoleConf?.label}</b>
+                  {hi ? 'भूमिका:' : 'Role:'} <b>{selectedRoleConf?.label}</b>
                 </p>
               </div>
             </div>
           </div>
-
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              width: '100%', padding: '12px', border: 'none',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #15803d, #16a34a)',
-              color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            }}
-          >
+          <button onClick={() => navigate('/')} style={{
+            width: '100%', padding: '12px', border: 'none',
+            borderRadius: 'var(--radius-md)',
+            background: 'linear-gradient(135deg, #15803d, #16a34a)',
+            color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+          }}>
             {hi ? 'होम पर जाएं' : 'Go to Home'}
           </button>
-
-          <button
-            onClick={handleSignOutUser}
-            style={{
-              marginTop: 10, width: '100%', padding: '10px', border: 'none',
-              background: 'none', color: 'var(--gray-400)', fontSize: '0.82rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: 5,
-            }}
-          >
+          <button onClick={handleSignOutUser} style={{
+            marginTop: 10, width: '100%', padding: '10px', border: 'none',
+            background: 'none', color: 'var(--gray-400)', fontSize: '0.82rem',
+            cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 5,
+          }}>
             <LogOut size={13} /> {hi ? 'लॉगआउट करें' : 'Log out / Switch User'}
           </button>
         </div>
@@ -361,22 +314,15 @@ export default function DeptLogin() {
     );
   }
 
-  // ── REGISTRATION FIELDS (reused in upgrade + register) ──────
+  // ───────────── SHARED: REGISTRATION FIELDS ─────────────
   const renderRegistrationFields = () => (
     <>
-      {/* Role picker */}
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>🎯 {hi ? 'आप किस भूमिका में जुड़ना चाहते हैं?' : 'Which role are you joining as?'}</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {REQUESTABLE_ROLES.map(r => (
-            <button
-              key={r.value}
-              type="button"
-              onClick={() => {
-                setSelectedRole(r.value);
-                setSupervisor(null);
-                setError(null);
-              }}
+            <button key={r.value} type="button"
+              onClick={() => { setSelectedRole(r.value); setSupervisor(null); setError(''); }}
               style={{
                 padding: '9px 10px', borderRadius: 'var(--radius-md)',
                 border: selectedRole === r.value ? `2px solid ${r.color}` : '1.5px solid var(--gray-200)',
@@ -384,76 +330,58 @@ export default function DeptLogin() {
                 color: selectedRole === r.value ? r.color : 'var(--gray-700)',
                 fontWeight: selectedRole === r.value ? 800 : 600,
                 fontSize: '0.78rem', cursor: 'pointer', textAlign: 'left',
-              }}
-            >
+              }}>
               {r.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* City */}
-      {selectedRoleConf?.needsCity && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>🏙️ {hi ? 'शहर चुनें *' : 'Select City *'}</label>
-          <div style={{ position: 'relative' }}>
-            <MapPin size={15} style={iconStyle} />
-            <ChevronDown size={14} style={{
-              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--gray-400)', pointerEvents: 'none',
-            }} />
-            <select
-              value={selectedCity}
-              onChange={e => setSelectedCity(e.target.value)}
-              required
-              style={{
-                ...inputStyle, paddingRight: 36, appearance: 'none', cursor: 'pointer',
-                color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)',
-              }}
-            >
-              <option value="" disabled>{hi ? '— शहर चुनें —' : '— Select City —'}</option>
-              {cities.map(c => (
-                <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
-              ))}
-            </select>
-          </div>
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>🏙️ {hi ? 'शहर चुनें *' : 'Select City *'}</label>
+        <div style={{ position: 'relative' }}>
+          <MapPin size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} required
+            style={{
+              width: '100%', padding: '11px 36px 11px 40px',
+              border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+              fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
+              appearance: 'none', cursor: 'pointer',
+              color: selectedCity ? 'var(--gray-900)' : 'var(--gray-400)',
+            }}>
+            <option value="" disabled>{hi ? '— शहर चुनें —' : '— Select City —'}</option>
+            {cities.map(c => (
+              <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
         </div>
-      )}
+      </div>
 
-      {/* Department */}
-      {selectedRoleConf?.needsDept && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>🏢 {hi ? 'विभाग चुनें *' : 'Select Department *'}</label>
-          <div style={{ position: 'relative' }}>
-            <Building2 size={15} style={iconStyle} />
-            <ChevronDown size={14} style={{
-              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--gray-400)', pointerEvents: 'none',
-            }} />
-            <select
-              value={selectedDept}
-              onChange={e => setSelectedDept(e.target.value)}
-              required
-              style={{
-                ...inputStyle, paddingRight: 36, appearance: 'none', cursor: 'pointer',
-                color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)',
-              }}
-            >
-              <option value="" disabled>{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
-              {departments.map(d => (
-                <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
-              ))}
-            </select>
-          </div>
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>🏢 {hi ? 'विभाग चुनें *' : 'Select Department *'}</label>
+        <div style={{ position: 'relative' }}>
+          <Building2 size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)} required
+            style={{
+              width: '100%', padding: '11px 36px 11px 40px',
+              border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+              fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
+              appearance: 'none', cursor: 'pointer',
+              color: selectedDept ? 'var(--gray-900)' : 'var(--gray-400)',
+            }}>
+            <option value="" disabled>{hi ? '— विभाग चुनें —' : '— Select Department —'}</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
         </div>
-      )}
+      </div>
 
-      {/* Supervisor search */}
       {selectedRoleConf?.needsSupervisor && (
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>
-            👨‍💼 {hi ? 'सुपरवाइज़र खोजें *' : 'Find your Supervisor *'}
-          </label>
+          <label style={labelStyle}>👨‍💼 {hi ? 'सुपरवाइज़र खोजें *' : 'Find your Supervisor *'}</label>
 
           {supervisor ? (
             <div style={{
@@ -473,14 +401,8 @@ export default function DeptLogin() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={clearSupervisor}
-                style={{
-                  border: 'none', background: 'none', cursor: 'pointer',
-                  color: '#16a34a', padding: 4,
-                }}
-              >
+              <button type="button" onClick={clearSupervisor}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#16a34a', padding: 4 }}>
                 <X size={16} />
               </button>
             </div>
@@ -488,56 +410,46 @@ export default function DeptLogin() {
             <>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                 <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={15} style={iconStyle} />
-                  <input
-                    type="text"
+                  <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+                  <input type="text"
                     placeholder={hi ? 'स्टाफ कोड या नाम से खोजें' : 'Search by staff code or name'}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
-                    style={inputStyle}
-                  />
+                    style={{
+                      width: '100%', padding: '11px 14px 11px 40px',
+                      border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
+                      fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box',
+                    }} />
                 </div>
-                <button
-                  type="button"
-                  onClick={runSearch}
-                  disabled={searching}
+                <button type="button" onClick={runSearch} disabled={searching}
                   style={{
-                    padding: '0 16px', border: 'none',
-                    borderRadius: 'var(--radius-md)',
+                    padding: '0 16px', border: 'none', borderRadius: 'var(--radius-md)',
                     background: 'linear-gradient(135deg, #15803d, #16a34a)',
                     color: '#fff', fontWeight: 800, fontSize: '0.82rem',
                     cursor: searching ? 'wait' : 'pointer',
-                  }}
-                >
+                  }}>
                   {searching ? '...' : (hi ? 'खोजें' : 'Find')}
                 </button>
               </div>
 
               <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: 'var(--gray-500)' }}>
-                {hi
-                  ? '💡 टिप: अपने सुपरवाइज़र का स्टाफ कोड पता हो तो सीधे खोजें।'
-                  : '💡 Tip: If you know your supervisor\'s staff code, search it directly to skip the city/department steps.'}
+                💡 {hi ? 'सुपरवाइज़र का स्टाफ कोड पता हो तो सीधे खोजें।' : 'Know the staff code? Search directly to skip city/dept.'}
               </p>
 
               {searchResults.length > 0 && (
                 <div style={{
-                  border: '1.5px solid var(--gray-200)',
-                  borderRadius: 'var(--radius-md)',
+                  border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)',
                   maxHeight: 220, overflowY: 'auto', background: '#fff',
                 }}>
                   {searchResults.map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => pickSupervisor(m)}
+                    <button key={m.id} type="button" onClick={() => pickSupervisor(m)}
                       style={{
                         width: '100%', padding: '10px 12px', border: 'none',
                         borderBottom: '1px solid var(--gray-100)',
                         background: '#fff', cursor: 'pointer', textAlign: 'left',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      }}
-                    >
+                      }}>
                       <div>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--gray-900)' }}>
                           {m.full_name || 'Unnamed Staff'}
@@ -565,51 +477,32 @@ export default function DeptLogin() {
         </div>
       )}
 
-      {/* Full name */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>👤 {hi ? 'पूरा नाम' : 'Full Name'}</label>
-        <div style={{ position: 'relative' }}>
-          <User size={15} style={iconStyle} />
-          <input
-            type="text"
-            placeholder={hi ? 'पूरा नाम' : 'Full Name'}
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-      </div>
-
-      {/* Phone */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={labelStyle}>📞 {hi ? 'संपर्क नंबर' : 'Phone Number'}</label>
-        <div style={{ position: 'relative' }}>
-          <Phone size={15} style={iconStyle} />
-          <input
-            type="tel"
-            placeholder={hi ? 'मोबाइल नंबर' : 'Phone Number'}
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-      </div>
+      <FormInput
+        icon={User}
+        placeholder={hi ? 'पूरा नाम' : 'Full Name'}
+        value={fullName}
+        onChange={e => setFullName(e.target.value)}
+      />
+      <FormInput
+        icon={Phone}
+        placeholder={hi ? 'मोबाइल नंबर' : 'Phone Number'}
+        value={phone}
+        onChange={e => setPhone(e.target.value)}
+      />
     </>
   );
 
-  // ── UPGRADE VIEW (logged-in citizen) ────────────────────────
+  // ───────────── UPGRADE VIEW (logged-in citizen) ─────────────
   if (mode === 'upgrade' && user) {
     return (
       <div style={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px',
       }}>
         <div style={{
-          width: '100%', maxWidth: 480,
-          background: '#fff', borderRadius: 'var(--radius-xl)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+          width: '100%', maxWidth: 480, background: '#fff',
+          borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
         }}>
           <div style={{
             background: 'linear-gradient(135deg, #15803d, #16a34a)',
@@ -632,52 +525,10 @@ export default function DeptLogin() {
           </div>
 
           <form onSubmit={handleUpgradeExisting} style={{ padding: '24px' }}>
-            {error && (
-              <div style={{
-                padding: '10px 14px', borderRadius: 'var(--radius-md)',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                color: '#dc2626', fontSize: '0.83rem', fontWeight: 600, marginBottom: 16,
-              }}>
-                {error}
-              </div>
-            )}
-
+            <AlertBanner type="error" message={error} />
             {renderRegistrationFields()}
 
-            {/* Password only needed if not currently signed in */}
-            {!user && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>🔒 {hi ? 'पासवर्ड *' : 'Password *'}</label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={15} style={iconStyle} />
-                  <input
-                    type={showPw ? 'text' : 'password'}
-                    placeholder={hi ? 'पासवर्ड' : 'Password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    style={{ ...inputStyle, paddingRight: 42 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw(p => !p)}
-                    style={{
-                      position: 'absolute', right: 12, top: '50%',
-                      transform: 'translateY(-50%)', border: 'none',
-                      background: 'none', cursor: 'pointer', padding: 0,
-                      color: 'var(--gray-400)',
-                    }}
-                  >
-                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
+            <button type="submit" disabled={loading}
               style={{
                 width: '100%', padding: '13px', border: 'none',
                 borderRadius: 'var(--radius-md)',
@@ -686,31 +537,19 @@ export default function DeptLogin() {
                 cursor: loading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
-              }}
-            >
-              {loading ? (
-                <span className="spinner" style={{ width: 18, height: 18 }} />
-              ) : (
-                <>
-                  <ShieldCheck size={16} />
-                  {hi ? 'आवेदन जमा करें' : 'Submit Application'}
-                </>
+              }}>
+              {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : (
+                <><ShieldCheck size={16} /> {hi ? 'आवेदन जमा करें' : 'Submit Application'}</>
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleSignOutUser}
+            <button type="button" onClick={handleSignOutUser}
               style={{
-                width: '100%', marginTop: 14, padding: '10px',
-                border: 'none', background: 'none',
-                color: 'var(--gray-500)', fontSize: '0.82rem',
-                cursor: 'pointer', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              <LogOut size={13} />
-              {hi ? 'दूसरे खाते से लॉगिन करें' : 'Use a different account'}
+                width: '100%', marginTop: 14, padding: '10px', border: 'none',
+                background: 'none', color: 'var(--gray-500)', fontSize: '0.82rem',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+              <LogOut size={13} /> {hi ? 'दूसरे खाते से लॉगिन करें' : 'Use a different account'}
             </button>
           </form>
         </div>
@@ -718,18 +557,16 @@ export default function DeptLogin() {
     );
   }
 
-  // ── MAIN LOGIN / REGISTER ───────────────────────────────────
+  // ───────────── MAIN LOGIN / REGISTER ─────────────
   return (
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f4c2a 0%, #16a34a 50%, #4ade80 100%)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px 16px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px',
     }}>
       <div style={{
-        width: '100%', maxWidth: 480,
-        background: '#fff', borderRadius: 'var(--radius-xl)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+        width: '100%', maxWidth: 480, background: '#fff',
+        borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
       }}>
         <div style={{
           background: 'linear-gradient(135deg, #15803d, #16a34a)',
@@ -751,83 +588,37 @@ export default function DeptLogin() {
           </p>
         </div>
 
-        {/* Tab Switch */}
         <div style={{ display: 'flex', borderBottom: '2px solid var(--gray-100)' }}>
           {[
             { id: 'login',    label: hi ? '🔑 स्टाफ लॉगिन' : '🔑 Staff Login' },
             { id: 'register', label: hi ? '🏢 स्टाफ के रूप में जुड़ें' : '🏢 Join as Staff' },
           ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setMode(tab.id as Mode); setError(null); }}
+            <button key={tab.id}
+              onClick={() => { setMode(tab.id as Mode); setError(''); }}
               style={{
                 flex: 1, padding: '13px', border: 'none', background: 'none',
                 fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer',
                 color: mode === tab.id ? 'var(--green-700)' : 'var(--gray-400)',
                 borderBottom: mode === tab.id ? '2.5px solid var(--green-600)' : '2.5px solid transparent',
                 transition: 'all 0.2s', marginBottom: -2,
-              }}
-            >
+              }}>
               {tab.label}
             </button>
           ))}
         </div>
 
         <div style={{ padding: '24px' }}>
-          {error && (
-            <div style={{
-              padding: '10px 14px', borderRadius: 'var(--radius-md)',
-              background: error.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
-              border: `1px solid ${error.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`,
-              color: error.startsWith('✅') ? '#15803d' : '#dc2626',
-              fontSize: '0.83rem', fontWeight: 600, marginBottom: 16,
-            }}>
-              {error}
-            </div>
-          )}
+          <AlertBanner type="error" message={error} />
 
-          {/* LOGIN MODE */}
           {mode === 'login' && (
             <form onSubmit={handleLogin}>
-              <div style={{ position: 'relative', marginBottom: 14 }}>
-                <Mail size={15} style={iconStyle} />
-                <input
-                  type="email"
-                  placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ position: 'relative', marginBottom: 20 }}>
-                <Lock size={15} style={iconStyle} />
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  placeholder={hi ? 'पासवर्ड *' : 'Password *'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  style={{ ...inputStyle, paddingRight: 42 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(p => !p)}
-                  style={{
-                    position: 'absolute', right: 12, top: '50%',
-                    transform: 'translateY(-50%)', border: 'none',
-                    background: 'none', cursor: 'pointer', padding: 0,
-                    color: 'var(--gray-400)',
-                  }}
-                >
-                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
+              <FormInput required type="email" icon={Mail}
+                placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
+                value={email} onChange={e => setEmail(e.target.value)} />
+              <PasswordInput required
+                placeholder={hi ? 'पासवर्ड *' : 'Password *'}
+                value={password} onChange={e => setPassword(e.target.value)} />
+              <button type="submit" disabled={loading}
                 style={{
                   width: '100%', padding: '13px', border: 'none',
                   borderRadius: 'var(--radius-md)',
@@ -836,27 +627,24 @@ export default function DeptLogin() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
-                }}
-              >
-                {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : <><LogIn size={16} /> {hi ? 'लॉगिन करें' : 'Login to Department'}</>}
+                }}>
+                {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : (
+                  <><LogIn size={16} /> {hi ? 'लॉगिन करें' : 'Login to Department'}</>
+                )}
               </button>
 
               <div style={{ marginTop: 16, textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => { setMode('register'); setError(null); }}
-                  style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
-                >
+                <button type="button"
+                  onClick={() => { setMode('register'); setError(''); }}
+                  style={{ background: 'none', border: 'none', color: '#15803d', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                   {hi ? 'नागरिक खाता है? स्टाफ में अपग्रेड करें →' : 'Have a citizen account? Join as Staff →'}
                 </button>
               </div>
             </form>
           )}
 
-          {/* REGISTER MODE */}
           {mode === 'register' && (
             <div>
-              {/* Toggle existing/new */}
               <div style={{
                 display: 'flex', background: 'var(--gray-100)',
                 padding: 4, borderRadius: 'var(--radius-md)', marginBottom: 16,
@@ -865,10 +653,8 @@ export default function DeptLogin() {
                   { id: 'existing', label: hi ? '👤 मौजूदा खाता' : '👤 Existing Account' },
                   { id: 'new',      label: hi ? '✨ नया खाता' : '✨ New Account' },
                 ].map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => { setRegisterType(t.id as 'existing' | 'new'); setError(null); }}
+                  <button key={t.id} type="button"
+                    onClick={() => { setRegisterType(t.id as 'existing' | 'new'); setError(''); }}
                     style={{
                       flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)',
                       background: registerType === t.id ? '#fff' : 'transparent',
@@ -876,8 +662,7 @@ export default function DeptLogin() {
                       fontWeight: registerType === t.id ? 800 : 600,
                       fontSize: '0.8rem', cursor: 'pointer',
                       boxShadow: registerType === t.id ? 'var(--shadow-sm)' : 'none',
-                    }}
-                  >
+                    }}>
                     {t.label}
                   </button>
                 ))}
@@ -899,54 +684,15 @@ export default function DeptLogin() {
               <form onSubmit={registerType === 'existing' ? handleUpgradeExisting : handleRegisterNew}>
                 {renderRegistrationFields()}
 
-                {/* Email */}
-                <div style={{ marginBottom: 14 }}>
-                  <label style={labelStyle}>📧 {hi ? 'ईमेल *' : 'Email *'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={15} style={iconStyle} />
-                    <input
-                      type="email"
-                      placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
+                <FormInput required type="email" icon={Mail}
+                  placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
+                  value={email} onChange={e => setEmail(e.target.value)} />
 
-                {/* Password */}
-                <div style={{ marginBottom: 20 }}>
-                  <label style={labelStyle}>🔒 {hi ? 'पासवर्ड *' : 'Password *'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={15} style={iconStyle} />
-                    <input
-                      type={showPw ? 'text' : 'password'}
-                      placeholder={hi ? 'पासवर्ड *' : 'Password *'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      style={{ ...inputStyle, paddingRight: 42 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw(p => !p)}
-                      style={{
-                        position: 'absolute', right: 12, top: '50%',
-                        transform: 'translateY(-50%)', border: 'none',
-                        background: 'none', cursor: 'pointer', padding: 0,
-                        color: 'var(--gray-400)',
-                      }}
-                    >
-                      {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
+                <PasswordInput required
+                  placeholder={hi ? 'पासवर्ड *' : 'Password *'}
+                  value={password} onChange={e => setPassword(e.target.value)} />
 
-                <button
-                  type="submit"
-                  disabled={loading}
+                <button type="submit" disabled={loading}
                   style={{
                     width: '100%', padding: '13px', border: 'none',
                     borderRadius: 'var(--radius-md)',
@@ -955,34 +701,24 @@ export default function DeptLogin() {
                     cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     boxShadow: loading ? 'none' : '0 4px 14px rgba(22,163,74,0.35)',
-                  }}
-                >
-                  {loading ? (
-                    <span className="spinner" style={{ width: 18, height: 18 }} />
-                  ) : (
-                    <>
-                      <ShieldCheck size={16} />
-                      {registerType === 'existing'
-                        ? (hi ? 'अपग्रेड आवेदन भेजें' : 'Submit Upgrade Request')
-                        : (hi ? 'पंजीकरण करें' : 'Submit Registration')}
-                    </>
+                  }}>
+                  {loading ? <span className="spinner" style={{ width: 18, height: 18 }} /> : (
+                    <><ShieldCheck size={16} /> {registerType === 'existing'
+                      ? (hi ? 'अपग्रेड आवेदन भेजें' : 'Submit Upgrade Request')
+                      : (hi ? 'पंजीकरण करें' : 'Submit Registration')}</>
                   )}
                 </button>
               </form>
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => navigate('/')}
+          <button type="button" onClick={() => navigate('/')}
             style={{
-              width: '100%', marginTop: 14, padding: '8px',
-              border: 'none', background: 'none',
-              color: 'var(--gray-400)', fontSize: '0.82rem',
-              cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', gap: 5,
-            }}
-          >
+              width: '100%', marginTop: 14, padding: '8px', border: 'none',
+              background: 'none', color: 'var(--gray-400)', fontSize: '0.82rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 5,
+            }}>
             <ArrowRight size={13} style={{ transform: 'rotate(180deg)' }} />
             {hi ? 'होम पर वापस जाएं' : 'Back to Home'}
           </button>
