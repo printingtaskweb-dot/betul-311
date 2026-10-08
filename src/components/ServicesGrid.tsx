@@ -22,7 +22,7 @@ const SERVICES: Service[] = [
   },
   {
     slug: 'water',
-    image: '/water.png', // 👈 served from public/water.png
+    image: '/rain-droplet-into-rings_78370-3843.avif', // 👈 served from public/water.png
     gradient: 'linear-gradient(135deg, #1e40af, #2563eb)',
     shadow: 'rgba(37,99,235,0.3)',
     route: '/complaint/new?dept=water',
