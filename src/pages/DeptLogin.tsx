@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Building2, Mail, Lock, LogIn, ShieldCheck, ArrowRight,
+  Building2, Mail, LogIn, ShieldCheck, ArrowRight,
   User, Phone, ChevronDown, Clock, CheckCircle,
   ArrowUpCircle, LogOut, Search, MapPin, X, BadgeCheck,
   AlertCircle,
@@ -39,8 +39,11 @@ const REQUESTABLE_ROLES = [
 type Mode = 'login' | 'register' | 'upgrade' | 'pending';
 
 export default function DeptLogin() {
-  const { user, profile, refreshProfile, signOut, language } = useAuth();
+  const { user, profile, refreshProfile, signOut, language: rawLang } = useAuth();
   const navigate = useNavigate();
+
+  // Normalize language to a strict union type
+  const language: 'en' | 'hi' = rawLang === 'hi' ? 'hi' : 'en';
   const hi = language === 'hi';
 
   const [mode, setMode] = useState<Mode>('login');
