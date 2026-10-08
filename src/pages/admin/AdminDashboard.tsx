@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
-import StaffApprovals from '../../admin/StaffApprovals';
+import StaffApprovals from '../../components/admin/StaffApprovals';
 
 import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
