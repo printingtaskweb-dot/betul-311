@@ -1,32 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Lock, ArrowLeft, ShieldCheck } from 'lucide-react';
-
-const ADMIN_PASSCODE = 'imc311admin';
+import { Lock, ArrowLeft, ShieldCheck, LogIn, UserPlus } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
-  const [passcode, setPasscode] = useState('');
-  const [error, setError] = useState('');
+  const { user, isAdmin, loading } = useAuth();
 
-  // If already logged in as designated admin (e.g. ouikey41@gmail.com), redirect directly
+  // If already logged in as admin, go straight to dashboard
   useEffect(() => {
-    if (isAdmin) {
+    if (!loading && user && isAdmin) {
       navigate('/admin/dashboard', { replace: true });
     }
-  }, [isAdmin, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode === ADMIN_PASSCODE) {
-      sessionStorage.setItem('imc_admin', '1');
-      navigate('/admin/dashboard');
-    } else {
-      setError('Incorrect passcode. Please try again.');
-    }
-  };
+  // While auth state is loading, show nothing (or a spinner)
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))',
+        }}
+      >
+        <div style={{ color: '#fff', fontWeight: 700 }}>Checking authentication…</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -46,7 +49,7 @@ export const AdminLogin: React.FC = () => {
           borderRadius: 'var(--radius-xl)',
           padding: 'clamp(28px, 4vw, 40px) clamp(20px, 3vw, 36px)',
           width: '100%',
-          maxWidth: 400,
+          maxWidth: 420,
           boxShadow: 'var(--shadow-xl)',
           position: 'relative',
         }}
@@ -90,74 +93,131 @@ export const AdminLogin: React.FC = () => {
           </p>
         </div>
 
-        {user && (
-          <div
-            style={{
-              background: 'var(--gray-50)',
-              border: '1px solid var(--gray-200)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 14px',
-              marginBottom: 16,
-              fontSize: '0.8rem',
-              color: 'var(--gray-600)',
-            }}
-          >
-            Logged in as: <strong>{user.email}</strong>
-          </div>
-        )}
-
-        <form onSubmit={handleLogin}>
-          <div style={{ position: 'relative', marginBottom: 14 }}>
-            <Lock
-              size={16}
-              color="var(--gray-400)"
-              style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}
-            />
-            <input
-              type="password"
-              placeholder="Enter admin passcode"
-              value={passcode}
-              onChange={(e) => {
-                setPasscode(e.target.value);
-                setError('');
+        {/* Case 1: Not logged in at all */}
+        {!user && (
+          <>
+            <div
+              style={{
+                background: 'var(--indigo-50)',
+                border: '1px solid var(--indigo-200)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 14px',
+                marginBottom: 18,
+                fontSize: '0.85rem',
+                color: 'var(--indigo-900)',
+                lineHeight: 1.5,
               }}
+            >
+              <Lock size={15} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+              You must sign in with an <strong>administrator account</strong> to access the dashboard.
+            </div>
+
+            <button
+              onClick={() => navigate('/auth?redirect=/admin/dashboard')}
               style={{
                 width: '100%',
-                boxSizing: 'border-box',
-                padding: '12px 14px 12px 40px',
+                padding: '13px 0',
                 borderRadius: 'var(--radius-sm)',
-                border: `1.5px solid ${error ? '#dc2626' : 'var(--gray-200)'}`,
-                fontSize: '0.92rem',
-                outline: 'none',
+                border: 'none',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 10,
               }}
-            />
-          </div>
+            >
+              <LogIn size={16} /> Login
+            </button>
 
-          {error && (
-            <p style={{ color: '#dc2626', fontSize: '0.82rem', margin: '0 0 12px', fontWeight: 600 }}>{error}</p>
-          )}
+            <button
+              onClick={() => navigate('/auth?mode=register&redirect=/admin/dashboard')}
+              style={{
+                width: '100%',
+                padding: '12px 0',
+                borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid var(--gray-300)',
+                background: 'var(--gray-50)',
+                color: 'var(--gray-700)',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <UserPlus size={16} /> Register
+            </button>
+          </>
+        )}
 
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              padding: '13px 0',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          >
-            Access Dashboard
-          </button>
-        </form>
+        {/* Case 2: Logged in but NOT admin */}
+        {user && !isAdmin && (
+          <>
+            <div
+              style={{
+                background: '#fee2e2',
+                border: '1px solid #fecaca',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 14px',
+                marginBottom: 16,
+                fontSize: '0.85rem',
+                color: '#dc2626',
+                lineHeight: 1.5,
+              }}
+            >
+              ⚠️ You are logged in as <strong>{user.email}</strong>, but this account does not have
+              administrator privileges.
+            </div>
+
+            <div
+              style={{
+                background: 'var(--gray-50)',
+                border: '1px solid var(--gray-200)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                marginBottom: 16,
+                fontSize: '0.82rem',
+                color: 'var(--gray-600)',
+              }}
+            >
+              Please sign in with an authorized admin account, or contact the municipal IT cell
+              to request admin access.
+            </div>
+
+            <button
+              onClick={() => navigate('/auth?redirect=/admin/dashboard')}
+              style={{
+                width: '100%',
+                padding: '13px 0',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <LogIn size={16} /> Switch Account
+            </button>
+          </>
+        )}
 
         <p style={{ textAlign: 'center', marginTop: 18, fontSize: '0.78rem', color: 'var(--gray-400)' }}>
-          Admin account <code>ouikey41@gmail.com</code> can access directly when logged in.
+          Authorized personnel only. All access is logged.
         </p>
       </div>
     </div>
