@@ -14,7 +14,7 @@ type Service = {
 
 const SERVICES: Service[] = [
   {
-    slug: 'green',
+    slug: 'Green City',
     image: '/green-city-icon-logo-free-vector.jpg',
     gradient: 'linear-gradient(135deg, #166534, #16a34a)',
     shadow: 'rgba(22,163,74,0.3)',
