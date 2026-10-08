@@ -10,12 +10,19 @@ import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users } from 'lucide-react
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const { departments, loading } = useDepartments();
   const [activeTab, setActiveTab] = useState<'complaints' | 'staff'>('complaints');
   const [activeDept, setActiveDept] = useState<Department | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingStaffCount, setPendingStaffCount] = useState<number>(0);
+
+  // Auth guard: must be logged in AND admin
+  useEffect(() => {
+    if (!authLoading && (!user || !isAdmin)) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   useEffect(() => {
     const fetchPendingCount = async () => {
@@ -32,18 +39,15 @@ export const AdminDashboard: React.FC = () => {
     fetchPendingCount();
   }, [activeTab]);
 
-  // Auth guard: allow if authenticated as admin (e.g. ouikey41@gmail.com or is_admin) OR passcode session
-  const hasPasscodeSession = sessionStorage.getItem('imc_admin') === '1';
-  if (!isAdmin && !hasPasscodeSession) {
-    navigate('/admin');
-    return null;
-  }
-
   const handleLogout = async () => {
-    sessionStorage.removeItem('imc_admin');
     await signOut();
     navigate('/');
   };
+
+  // Prevent flash of dashboard before redirect
+  if (authLoading || !user || !isAdmin) {
+    return null;
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--gray-50)', display: 'flex', flexDirection: 'column' }}>
@@ -60,7 +64,6 @@ export const AdminDashboard: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Mobile menu toggle button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
@@ -137,7 +140,6 @@ export const AdminDashboard: React.FC = () => {
 
       {/* ── Main Area with Responsive Sidebar ── */}
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
-        {/* Sidebar for Desktop & Off-Canvas on Mobile */}
         <aside
           style={{
             width: 240,
@@ -150,7 +152,6 @@ export const AdminDashboard: React.FC = () => {
           }}
           className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}
         >
-          {/* View: All Complaints */}
           <button
             onClick={() => {
               setActiveTab('complaints');
@@ -178,7 +179,6 @@ export const AdminDashboard: React.FC = () => {
             <span>🗂️</span> All Complaints
           </button>
 
-          {/* View: Staff Approvals */}
           <button
             onClick={() => {
               setActiveTab('staff');
@@ -282,7 +282,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </aside>
 
-        {/* Backdrop for mobile offcanvas */}
         {mobileMenuOpen && (
           <div
             onClick={() => setMobileMenuOpen(false)}
@@ -295,7 +294,6 @@ export const AdminDashboard: React.FC = () => {
           />
         )}
 
-        {/* Main Content Area */}
         <main style={{ flex: 1, padding: 'clamp(14px, 2.5vw, 24px)', overflowX: 'hidden', minWidth: 0 }}>
           {activeTab === 'staff' ? (
             <div>
