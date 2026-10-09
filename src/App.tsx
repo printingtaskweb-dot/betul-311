@@ -12,6 +12,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import DeptLogin from './pages/DeptLogin';
 import DeptDashboard from './pages/DeptDashboard';
+import { FloatingNewsWidget } from './components/FloatingNewsWidget';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -141,6 +142,7 @@ const App: React.FC = () => {
         {!splashDone && <SplashScreen onDone={handleSplashDone} />}
         <BrowserRouter>
           <AppRoutes />
+          <FloatingNewsWidget />
         </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

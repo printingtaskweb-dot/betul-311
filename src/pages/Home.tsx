@@ -6,7 +6,6 @@ import { HeroBanner } from '../components/HeroBanner';
 import { StatsSection } from '../components/StatsSection';
 import { ServicesGrid } from '../components/ServicesGrid';
 import { RecentComplaints } from '../components/RecentComplaints';
-import { NearbyNewsSection } from '../components/NearbyNewsSection';
 import { BottomNav } from '../components/BottomNav';
 import { Globe, LogOut, Building2 } from 'lucide-react';
 
@@ -385,9 +384,6 @@ export const Home: React.FC = () => {
 
       {/* ── Municipal Services Grid ── */}
       <ServicesGrid />
-
-      {/* ── Nearby Area News & Community Thoughts (Moderated) ── */}
-      <NearbyNewsSection />
 
       {/* ── Recent Complaints Activity ── */}
       <RecentComplaints />

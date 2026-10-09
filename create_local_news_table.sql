@@ -121,40 +121,7 @@ $$;
 -- Grant execution to public & authenticated
 GRANT EXECUTE ON FUNCTION public.increment_local_news_likes(UUID) TO anon, authenticated;
 
--- 7. Sample Initial Approved Posts for Betul Localities
-INSERT INTO public.local_news (author_name, area, category, title, content, status, likes_count, created_at, approved_at)
-VALUES 
-  (
-    'Ramesh Verma',
-    'Kothi Bazar',
-    'news',
-    'Morning Cleanliness & Plastic-Free Drive',
-    'Local youth group completed a 2-hour morning clean-up near Kothi Bazar Community Hall. 15 kg of single-use plastic collected and handed to municipal vehicle.',
-    'approved',
-    12,
-    now() - INTERVAL '3 hours',
-    now() - INTERVAL '2 hours'
-  ),
-  (
-    'Sunita Patil',
-    'Ganj Ward 12',
-    'thought',
-    'Green Betul Idea: Plant More Neem Trees',
-    'Let us start planting Neem and Peepal saplings along the open street dividers before the monsoon. It will keep our neighborhood cooler and naturally purified.',
-    'approved',
-    8,
-    now() - INTERVAL '6 hours',
-    now() - INTERVAL '5 hours'
-  ),
-  (
-    'Amit Sharma',
-    'Civil Lines',
-    'alert',
-    'Traffic Route Advisory near Railway Overbridge',
-    'Culvert repair is underway on the approach road to the railway overbridge. Please use the Sadar Bazaar alternate route between 10 AM to 4 PM.',
-    'approved',
-    19,
-    now() - INTERVAL '1 day',
-    now() - INTERVAL '22 hours'
-  )
-ON CONFLICT DO NOTHING;
+-- 7. Optional: Delete dummy demo records if any were previously inserted
+DELETE FROM public.local_news 
+WHERE author_name IN ('Ramesh Verma', 'Sunita Patil', 'Amit Sharma');
+
