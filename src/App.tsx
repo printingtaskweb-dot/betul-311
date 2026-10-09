@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { SplashScreen } from './components/SplashScreen';
@@ -11,6 +12,90 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import DeptLogin from './pages/DeptLogin';
 import DeptDashboard from './pages/DeptDashboard';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+  };
+
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            background: '#fff4e7',
+            fontFamily: 'sans-serif',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: '#d9d9d9',
+              padding: '32px 24px',
+              borderRadius: 16,
+              maxWidth: 480,
+              width: '100%',
+              border: '1.5px solid #bfbfbf',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <h2 style={{ color: '#660033', margin: '0 0 10px', fontWeight: 800 }}>
+              Application Encountered an Error
+            </h2>
+            <p style={{ color: '#383838', fontSize: '0.9rem', marginBottom: 20, lineHeight: 1.5 }}>
+              {this.state.error?.message || 'An unexpected error occurred while rendering the page.'}
+            </p>
+            <button
+              onClick={() => {
+                sessionStorage.clear();
+                window.location.reload();
+              }}
+              style={{
+                padding: '12px 24px',
+                borderRadius: 8,
+                border: 'none',
+                background: 'linear-gradient(135deg, #660033, #800040)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+              }}
+            >
+              🔄 Refresh Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const AppRoutes: React.FC = () => (
   <Routes>
@@ -42,20 +127,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (alreadyShown) setSplashDone(true);
-  }, []);
+  }, [alreadyShown]);
 
-  const handleSplashDone = () => {
+  const handleSplashDone = useCallback(() => {
     sessionStorage.setItem('splash_shown', '1');
     setSplashDone(true);
-  };
+  }, []);
 
   return (
-    <AuthProvider>
-      {!splashDone && <SplashScreen onDone={handleSplashDone} />}
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        {!splashDone && <SplashScreen onDone={handleSplashDone} />}
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
