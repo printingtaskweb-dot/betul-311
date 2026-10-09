@@ -12,6 +12,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import DeptLogin from './pages/DeptLogin';
 import DeptDashboard from './pages/DeptDashboard';
+import { ShowcasePage } from './pages/ShowcasePage';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -104,6 +105,8 @@ const AppRoutes: React.FC = () => (
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/complaint/new" element={<ComplaintForm />} />
     <Route path="/track" element={<TrackComplaint />} />
+    <Route path="/showcase" element={<ShowcasePage />} />
+    <Route path="/tools" element={<ShowcasePage />} />
 
     {/* Department-specific routes */}
     <Route path="/department/green" element={<GreenDepartmentPage />} />
