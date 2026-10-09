@@ -1,111 +1,323 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* =========================================================
+   IMC 311 / Betul 311 – Responsive Design & Typography System
+   ========================================================= */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
+:root {
+  /* =========================================================================
+     🎨 CENTRAL THEME CUSTOMIZATION
+     Modify these 3 core variables to easily change colors across the entire app:
+     1. --theme-bg: Application Background (#fff4e7)
+     2. --theme-primary: Primary Brand, Headers, Highlights & Action Buttons (#660033)
+     3. --theme-component: Cards, Boxes, Panels & Component Backgrounds (#d9d9d9)
+     ========================================================================= */
+  --theme-bg: #eceae6;
+  --theme-primary: #660033;
+  --theme-component: #e6e6e6;
+  --theme-component-border: #bfbfbf;
+  --theme-component-hover: #cecece;
+
+  /* Global Token Aliases */
+  --bg-page: var(--theme-bg);
+  --bg-card: var(--theme-component);
+  --bg-surface: var(--theme-component);
+  --color-primary: var(--theme-primary);
+  --color-component: var(--theme-component);
+  --color-border: var(--theme-component-border);
+
+  /* Fonts */
+  --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-hindi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
+
+  /* Primary Palette (Tonal variants derived from #660033) */
+  --primary-50:  #fff4e7;
+  --primary-100: #fae1eb;
+  --primary-200: #f4c2d7;
+  --primary-300: #e383ac;
+  --primary-400: #cc4580;
+  --primary-500: #99004d;
+  --primary-600: var(--theme-primary);
+  --primary-700: #4d0026;
+  --primary-800: #3b001d;
+  --primary-900: #290014;
+
+  /* Mapped Civic Palette (Aliases for existing green-* variables) */
+  --green-50:  var(--theme-bg);
+  --green-100: #fae1eb;
+  --green-200: #f4c2d7;
+  --green-300: #e383ac;
+  --green-400: #cc4580;
+  --green-500: #99004d;
+  --green-600: var(--theme-primary);
+  --green-700: #4d0026;
+  --green-800: #3b001d;
+  --green-900: #290014;
+
+  /* Accent – Indigo / Blue */
+  --indigo-50:  var(--theme-component);
+  --indigo-500: #660033;
+  --indigo-600: #4d0026;
+  --indigo-700: #3b001d;
+  --blue-500:   var(--theme-primary);
+  --blue-600:   #660033;
+
+  /* Accent – Warm */
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --red-500:   #ef4444;
+  --red-600:   #dc2626;
+
+  /* Neutrals mapped to #fff4e7 and #d9d9d9 */
+  --gray-50:  var(--theme-bg);
+  --gray-100: var(--theme-component);
+  --gray-200: var(--theme-component-border);
+  --gray-300: #a8a8a8;
+  --gray-400: #757575;
+  --gray-500: #525252;
+  --gray-600: #383838;
+  --gray-700: #242424;
+  --gray-800: #141414;
+  --gray-900: #050505;
+
+  /* Gradients */
+  --primary-gradient: linear-gradient(135deg, #660033 0%, #800040 100%);
+  --header-gradient: linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%);
+
+  /* Responsive Spacing Scale */
+  --space-xs: clamp(4px, 1vw, 6px);
+  --space-sm: clamp(8px, 1.5vw, 12px);
+  --space-md: clamp(14px, 2.5vw, 20px);
+  --space-lg: clamp(20px, 4vw, 32px);
+  --space-xl: clamp(28px, 5vw, 48px);
+
+  /* Responsive Fluid Typography */
+  --text-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.75rem);
+  --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem);
+  --text-base: clamp(0.9rem, 0.85rem + 0.3vw, 1rem);
+  --text-lg: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-3xl: clamp(1.85rem, 1.5rem + 1.5vw, 2.5rem);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
+  --shadow-lg: 0 12px 30px rgba(15,23,42,0.12);
+  --shadow-glow: 0 0 24px rgba(34,197,94,0.25);
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
 body {
-  margin: 0;
+  font-family: var(--font-primary);
+  background-color: var(--theme-bg);
+  color: var(--gray-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
+  overflow-x: hidden;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Typography styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-primary);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--gray-900);
+  line-height: 1.25;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+p, span, label, input, textarea, button {
+  font-family: inherit;
+}
+
+/* Language font switching */
+body[lang="hi"], [lang="hi"] {
+  font-family: var(--font-hindi);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--theme-bg); }
+::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-700); }
+
+/* Global Component & Card Defaults */
+.card-hover,
+.card-component,
+.app-card {
+  background-color: var(--theme-component);
+  border: 1.5px solid var(--theme-component-border);
+}
+
+/* Containers */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(12px, 3vw, 24px);
+  padding-right: clamp(12px, 3vw, 24px);
+}
+
+.content-container-sm {
+  width: 100%;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.content-container-md {
+  width: 100%;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Responsive Grids */
+.stats-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .stats-grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+.services-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .services-grid-responsive {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
   }
 }
-p {
-  margin: 0;
+
+.two-col-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+@media (min-width: 768px) {
+  .two-col-responsive {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* Card hover */
+.card-hover {
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Bottom Nav responsive handling:
+   Show on mobile/tablet, hide on large desktop where header navigation takes over */
+.mobile-bottom-nav {
+  display: flex;
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+  .desktop-nav-links {
+    display: flex !important;
+  }
+}
+
+.desktop-nav-links {
+  display: none;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin { animation: spin 0.8s linear infinite; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+
+@keyframes bounceIn {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.05); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Brand badge styling */
+.admin-badge-pulse {
+  animation: pulse-green 2.5s infinite;
 }
