@@ -28,6 +28,11 @@ export type Database = {
         Insert: Omit<Verification, 'id' | 'verified_at'>;
         Update: Partial<Omit<Verification, 'id'>>;
       };
+      local_news: {
+        Row: LocalNews;
+        Insert: Omit<LocalNews, 'id' | 'created_at' | 'updated_at' | 'likes_count'> & { likes_count?: number };
+        Update: Partial<Omit<LocalNews, 'id' | 'created_at'>>;
+      };
     };
   };
 };
@@ -79,4 +84,25 @@ export interface Verification {
   is_satisfied: boolean;
   note: string | null;
   verified_at: string;
+}
+
+export type LocalNewsStatus = 'pending' | 'approved' | 'rejected';
+export type LocalNewsCategory = 'news' | 'alert' | 'event' | 'thought' | 'general';
+
+export interface LocalNews {
+  id: string;
+  author_name: string;
+  author_phone?: string | null;
+  area: string;
+  category: LocalNewsCategory;
+  title?: string | null;
+  content: string;
+  photo_url?: string | null;
+  status: LocalNewsStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+  likes_count: number;
+  created_at: string;
+  updated_at: string;
 }

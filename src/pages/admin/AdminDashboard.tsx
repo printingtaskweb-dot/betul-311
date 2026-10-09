@@ -4,11 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
 import AdminStaffRegistration from '../../components/admin/AdminStaffRegistration';
+import AdminNewsModeration from '../../components/admin/AdminNewsModeration';
+import { supabase } from '../../lib/supabase';
 
 import type { Department } from '../../lib/supabase';
-import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, UserPlus } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, UserPlus, Newspaper } from 'lucide-react';
 
-type Tab = 'complaints' | 'register';
+type Tab = 'complaints' | 'register' | 'local_news';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,27 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('complaints');
   const [activeDept, setActiveDept] = useState<Department | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingNewsCount, setPendingNewsCount] = useState(0);
+
+  // Fetch pending news count for moderation badge
+  useEffect(() => {
+    const fetchPendingNewsCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('local_news')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        if (!error && typeof count === 'number') {
+          setPendingNewsCount(count);
+        }
+      } catch (e) {
+        // silently ignore if table not created yet
+      }
+    };
+    if (user && isAdmin) {
+      fetchPendingNewsCount();
+    }
+  }, [user, isAdmin, activeTab]);
 
   // Auth guard: must be logged in AND admin
   useEffect(() => {
@@ -205,12 +228,41 @@ export const AdminDashboard: React.FC = () => {
               setActiveDept(null);
               setMobileMenuOpen(false);
             }}
-            style={navBtnStyle(activeTab === 'register', 12)}
+            style={navBtnStyle(activeTab === 'register', 4)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <UserPlus size={16} color={activeTab === 'register' ? '#fff' : 'var(--gray-500)'} />
               <span>Register Staff</span>
             </div>
+          </button>
+
+          {/* Local News Moderation */}
+          <button
+            onClick={() => {
+              setActiveTab('local_news');
+              setActiveDept(null);
+              setMobileMenuOpen(false);
+            }}
+            style={navBtnStyle(activeTab === 'local_news', 12)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Newspaper size={16} color={activeTab === 'local_news' ? '#fff' : 'var(--gray-500)'} />
+              <span>Local News & Thoughts</span>
+            </div>
+            {pendingNewsCount > 0 && (
+              <span
+                style={{
+                  background: activeTab === 'local_news' ? '#fff' : 'var(--theme-primary, #660033)',
+                  color: activeTab === 'local_news' ? 'var(--theme-primary, #660033)' : '#fff',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '1px 7px',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                }}
+              >
+                {pendingNewsCount}
+              </span>
+            )}
           </button>
 
           <div
@@ -293,6 +345,10 @@ export const AdminDashboard: React.FC = () => {
                 'Create a staff login and give the email and password to the officer',
               )}
               <AdminStaffRegistration onDone={() => {}} />
+            </div>
+          ) : activeTab === 'local_news' ? (
+            <div>
+              <AdminNewsModeration />
             </div>
           ) : (
             <div>
