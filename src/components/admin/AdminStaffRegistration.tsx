@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../../lib/supabase';
 import {
   Mail, ShieldCheck, ArrowRight, User, Phone, ChevronDown, ChevronLeft,
   Search, MapPin, X, BadgeCheck, Briefcase, Crown, Copy, Wand2, Plus,
@@ -11,8 +11,8 @@ import { AlertBanner } from '../auth/AlertBanner';
 
 /* Separate client: creating the new user must NOT replace the admin's session */
 const provisionClient = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+  (import.meta.env.VITE_SUPABASE_URL as string) || supabaseUrl,
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || supabaseAnonKey,
   {
     auth: {
       persistSession: false,
