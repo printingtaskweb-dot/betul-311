@@ -111,3 +111,21 @@ FROM public.departments d
 WHERE NOT EXISTS (
   SELECT 1 FROM public.designations WHERE department_id = d.id AND tier = 4
 );
+
+-- 8. Backfill staff_code and hierarchy_code for existing staff members who do not have one
+UPDATE public.user_profiles up
+SET 
+  staff_code = 'BET-' || UPPER(COALESCE(SUBSTRING(d.slug FROM 1 FOR 3), 'ADM')) || '-' || (FLOOR(1000 + RANDOM() * 9000)::text),
+  hierarchy_code = COALESCE(up.hierarchy_code, 'operational_staff')
+FROM public.departments d
+WHERE up.linked_department_id = d.id
+  AND (up.staff_code IS NULL OR up.staff_code = '')
+  AND up.role != 'citizen';
+
+UPDATE public.user_profiles
+SET 
+  staff_code = 'BET-GEN-' || (FLOOR(1000 + RANDOM() * 9000)::text),
+  hierarchy_code = COALESCE(hierarchy_code, 'operational_staff')
+WHERE (staff_code IS NULL OR staff_code = '')
+  AND role != 'citizen';
+

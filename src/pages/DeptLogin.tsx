@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Building2, Mail, ArrowRight, Clock, LogOut } from 'lucide-react';
+import { Building2, ArrowRight, Clock, LogOut } from 'lucide-react';
 
 import { FormInput } from '../components/auth/FormInput';
 import { PasswordInput } from '../components/auth/PasswordInput';
@@ -18,7 +18,7 @@ export default function DeptLogin() {
   const navigate = useNavigate();
   const hi = rawLang === 'hi';
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,12 +32,32 @@ export default function DeptLogin() {
   }, [user, profile, isStaff, navigate]);
 
   const handleLogin = async () => {
-    const mail = email.trim().toLowerCase();
-    if (!mail) { setError(hi ? 'ईमेल आवश्यक है' : 'Email is required'); return; }
+    const idInput = identifier.trim();
+    if (!idInput) { setError(hi ? 'स्टाफ आईडी या ईमेल आवश्यक है' : 'Staff ID / Dept ID or Email is required'); return; }
     if (!password) { setError(hi ? 'पासवर्ड आवश्यक है' : 'Password is required'); return; }
 
     setLoading(true); setError('');
     try {
+      let mail = idInput.toLowerCase();
+      if (!mail.includes('@')) {
+        // Query user_profiles by staff_code
+        const { data: userProf, error: profErr } = await supabase
+          .from('user_profiles')
+          .select('email')
+          .ilike('staff_code', idInput)
+          .maybeSingle();
+
+        if (profErr) throw profErr;
+        if (!userProf?.email) {
+          throw new Error(
+            hi
+              ? `स्टाफ आईडी "${idInput}" का कोई खाता नहीं मिला। कृपया अपने एडमिन से संपर्क करें।`
+              : `No account found for Staff ID "${idInput}". Please contact your admin.`
+          );
+        }
+        mail = userProf.email.toLowerCase();
+      }
+
       const { error: signErr } = await supabase.auth.signInWithPassword({ email: mail, password });
       if (signErr) throw signErr;
       // redirect happens in the useEffect once profile loads
@@ -48,7 +68,7 @@ export default function DeptLogin() {
 
   const handleSignOut = async () => {
     await signOut();
-    setEmail(''); setPassword(''); setError('');
+    setIdentifier(''); setPassword(''); setError('');
   };
 
   const pageBg = 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))';
@@ -60,7 +80,7 @@ export default function DeptLogin() {
   };
   const linkBtn: React.CSSProperties = {
     marginTop: 10, width: '100%', padding: 10, border: 'none', background: 'none',
-    color: 'var(--gray-400)', fontSize: '0.82rem', cursor: 'pointer',
+    color: 'var(--gray-700)', fontSize: '0.82rem', cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
   };
 
@@ -68,9 +88,9 @@ export default function DeptLogin() {
   if (user && profile && !isStaff) {
     return (
       <div style={{ minHeight: '100vh', background: pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ maxWidth: 440, width: '100%', background: '#fff', borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', padding: 36, textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <Clock size={32} color="#d97706" />
+        <div style={{ maxWidth: 440, width: '100%', background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', padding: 36, textAlign: 'center', border: '1.5px solid var(--theme-component-border, #bfbfbf)' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--theme-bg, #fff4e7)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
+            <Clock size={32} color="var(--theme-primary, #660033)" />
           </div>
           <h2 style={{ margin: '0 0 10px', fontSize: '1.25rem', fontWeight: 900 }}>
             {isPending ? (hi ? 'अनुमोदन की प्रतीक्षा' : 'Awaiting Approval')
@@ -106,9 +126,9 @@ export default function DeptLogin() {
         <div style={{ padding: '20px 24px 24px' }}>
           <AlertBanner type="error" message={error} />
 
-          <FormInput icon={Mail} type="email"
-            placeholder={hi ? 'ईमेल पता *' : 'Email Address *'}
-            value={email} onChange={e => setEmail(e.target.value)} />
+          <FormInput icon={Building2} type="text"
+            placeholder={hi ? 'स्टाफ आईडी / विभाग कोड या ईमेल *' : 'Staff ID / Dept ID or Email *'}
+            value={identifier} onChange={e => setIdentifier(e.target.value)} />
           <PasswordInput
             placeholder={hi ? 'पासवर्ड *' : 'Password *'}
             value={password} onChange={e => setPassword(e.target.value)} />
@@ -120,8 +140,8 @@ export default function DeptLogin() {
           </button>
 
           <p style={{ margin: '14px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)', textAlign: 'center' }}>
-            {hi ? 'खाता एडमिन द्वारा बनाया जाता है। लॉगिन विवरण के लिए एडमिन से संपर्क करें।'
-                : 'Accounts are created by the admin. Contact your admin for login details.'}
+            {hi ? 'खाता और स्टाफ आईडी एडमिन द्वारा प्रदान किए जाते हैं।'
+                : 'Account & Staff ID are provided by your administrator.'}
           </p>
 
           <button type="button" onClick={() => navigate('/')}

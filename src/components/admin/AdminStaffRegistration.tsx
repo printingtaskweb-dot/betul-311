@@ -87,7 +87,7 @@ export default function AdminStaffRegistration({ onDone }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [created, setCreated] = useState<{ email: string; password: string; staffCode?: string } | null>(null);
 
 const DEFAULT_DESIGNATIONS: Designation[] = [
   { designation_id: 'default-dept-head', tier: 1, name: 'Department Head', name_hi: 'विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
@@ -183,17 +183,54 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
     if (!searchTerm.trim() && !needsDeputy) { setError('Enter a search term'); return; }
     setSearching(true); setError('');
     try {
-      const { data, error: e } = await supabase.rpc('search_approvers_for_signup', {
-        p_search: searchTerm.trim(),
-        p_city_id: selectedCity || null,
-        p_department_id: isDeptRole ? (selectedDept || null) : null,
-        p_lat: null,
-        p_lng: null,
-        p_limit: 25,
-      });
-      if (e) throw e;
-      let list = (data ?? []) as StaffMatch[];
-      if (needsDeputy) list = list.filter(m => m.hierarchy_code === 'deputy_commissioner');
+      let list: StaffMatch[] = [];
+      const term = searchTerm.trim();
+
+      try {
+        const { data, error: e } = await supabase.rpc('search_approvers_for_signup', {
+          p_search: term,
+          p_city_id: selectedCity || null,
+          p_department_id: isDeptRole ? (selectedDept || null) : null,
+          p_lat: null,
+          p_lng: null,
+          p_limit: 25,
+        });
+        if (!e && data && (data as any[]).length > 0) {
+          list = data as StaffMatch[];
+        }
+      } catch (rpcErr) {
+        console.warn('RPC search_approvers_for_signup failed, falling back:', rpcErr);
+      }
+
+      // If RPC gave no matches, fallback to direct query on user_profiles
+      if (list.length === 0) {
+        let query = supabase
+          .from('user_profiles')
+          .select('id, full_name, role, hierarchy_code, staff_code, linked_department_id')
+          .neq('role', 'citizen');
+
+        if (term) {
+          query = query.or(`full_name.ilike.%${term}%,staff_code.ilike.%${term}%,email.ilike.%${term}%,hierarchy_code.ilike.%${term}%`);
+        }
+        if (selectedCity) {
+          query = query.or(`city_id.eq.${selectedCity},city_id.is.null`);
+        }
+
+        const { data: profs, error: pErr } = await query.limit(25);
+        if (!pErr && profs) {
+          list = profs.map(p => ({
+            id: p.id,
+            full_name: p.full_name,
+            role: p.role,
+            hierarchy_code: p.hierarchy_code,
+            staff_code: p.staff_code,
+            department_name: departments.find(d => d.id === p.linked_department_id)?.name || null,
+            designation_name: (p.role || '').replace(/_/g, ' '),
+          }));
+        }
+      }
+
+      if (needsDeputy) list = list.filter(m => m.hierarchy_code === 'deputy_commissioner' || m.role === 'department_head');
       setSearchResults(list);
       setSearched(true);
     } catch (err) {
@@ -255,7 +292,21 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
         throw new Error('Could not retrieve user ID for registration.');
       }
 
-      // 2. Upsert profile in user_profiles using admin's client
+      // 2. Generate unique Staff Code and Hierarchy Code
+      const deptObj = departments.find(d => d.id === selectedDept);
+      const cityObj = cities.find(c => c.id === selectedCity);
+      const cityPrefix = (cityObj?.slug || cityObj?.name || 'BET').slice(0, 3).toUpperCase();
+      const deptPrefix = deptObj ? (deptObj.slug || deptObj.name).slice(0, 3).toUpperCase() : 'ADM';
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const generatedStaffCode = `${cityPrefix}-${deptPrefix}-${randomNum}`;
+
+      const hierarchyCode = isDeptRole
+        ? (selectedDesig?.hierarchy_code || (selectedDesig?.tier === 1 ? 'department_head' : selectedDesig?.tier === 2 ? 'supervisor' : 'operational_staff'))
+        : (roleKey === 'municipal_commissioner' ? 'commissioner' : roleKey === 'deputy_commissioner' ? 'deputy_commissioner' : roleKey);
+
+      const authorityRole = !isDeptRole ? roleKey : null;
+
+      // Upsert profile in user_profiles using admin's client
       const profilePayload: Record<string, any> = {
         id: userId,
         email: email,
@@ -266,6 +317,9 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
         city_id: selectedCity || null,
         supervisor_id: supervisor ? supervisor.id : null,
         designation_id: validDesigId,
+        staff_code: generatedStaffCode,
+        hierarchy_code: hierarchyCode,
+        authority_role: authorityRole,
         approval_status: 'approved',
         approved_at: new Date().toISOString(),
         language: 'en',
@@ -318,7 +372,7 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
 
       await provisionClient.auth.signOut();
 
-      setCreated({ email, password });
+      setCreated({ email, password, staffCode: generatedStaffCode });
       setStage('done');
       onDone?.();
     } catch (err) {
@@ -336,7 +390,11 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
   const copyCreds = async () => {
     if (!created) return;
     try {
-      await navigator.clipboard.writeText(`Email: ${created.email}\nPassword: ${created.password}`);
+      const parts = [];
+      if (created.staffCode) parts.push(`Staff ID / Dept ID: ${created.staffCode}`);
+      parts.push(`Email: ${created.email}`);
+      parts.push(`Password: ${created.password}`);
+      await navigator.clipboard.writeText(parts.join('\n'));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* ignore */ }
@@ -615,6 +673,12 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
             </div>
 
             <div style={{ padding: '14px 16px', background: 'var(--theme-bg, #fff4e7)', border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', fontSize: '0.88rem', lineHeight: 1.9 }}>
+              {created.staffCode && (
+                <div>
+                  <b>Staff ID / Dept ID:</b>{' '}
+                  <code style={{ fontWeight: 800, color: 'var(--theme-primary, #660033)' }}>{created.staffCode}</code>
+                </div>
+              )}
               <div><b>Email:</b> {created.email}</div>
               <div><b>Password:</b> <code>{created.password}</code></div>
             </div>

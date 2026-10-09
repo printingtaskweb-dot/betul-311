@@ -21,6 +21,11 @@ const STATUS_CONFIG: Record<string, { label: string; labelHi: string; color: str
   rejected:    { label: 'Rejected',    labelHi: 'अस्वीकृत',   color: '#991b1b', bg: '#fee2e2', Icon: XCircle },
 };
 
+const STAFF_ROLES = [
+  'dept_staff', 'admin', 'department_head', 'supervisor', 'control_room',
+  'management_viewer', 'field_employee', 'municipal_administrator',
+];
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function fmtDate(s: string) {
   return new Date(s).toLocaleString('en-IN', {
@@ -139,17 +144,17 @@ function ResolveModal({ complaint, resolvedBy, language, onClose, onResolved, re
               <div
                 onClick={() => fileRef.current?.click()}
                 style={{
-                  border: '2px dashed var(--green-300)',
+                  border: '2px dashed var(--theme-component-border, #bfbfbf)',
                   borderRadius: 'var(--radius-md)',
                   padding: '32px 20px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  background: 'var(--green-50)',
+                  background: 'var(--theme-bg, #fff4e7)',
                   transition: 'background 0.2s',
                 }}
               >
-                <Camera size={28} color="var(--green-600)" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-700)' }}>
+                <Camera size={28} color="var(--theme-primary, #660033)" style={{ margin: '0 auto 8px', display: 'block' }} />
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--theme-primary, #660033)' }}>
                   {hi ? 'फोटो खींचें या अपलोड करें' : 'Take or Upload Photo'}
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--gray-400)' }}>
@@ -264,8 +269,8 @@ function ComplaintDetailCard({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--green-700)',
-              background: 'var(--green-50)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--green-200)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--theme-primary, #660033)',
+              background: 'var(--theme-bg, #fff4e7)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
               #{c.ticket_number}
             </span>
             <span style={{
@@ -318,12 +323,12 @@ function ComplaintDetailCard({
                   gap: 4,
                   padding: '5px 10px',
                   borderRadius: 'var(--radius-sm)',
-                  background: '#f0fdf4',
-                  color: '#15803d',
+                  background: 'var(--theme-bg, #fff4e7)',
+                  color: 'var(--theme-primary, #660033)',
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   textDecoration: 'none',
-                  border: '1px solid #bbf7d0',
+                  border: '1px solid var(--theme-component-border, #bfbfbf)',
                 }}
               >
                 <Navigation size={12} /> {hi ? 'दिशा-निर्देश' : 'Get Directions'}
@@ -401,13 +406,13 @@ function ComplaintDetailCard({
             )}
             {c.resolution_photo && (
               <div style={{ flex: 1, minWidth: 120 }}>
-                <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--green-700)', textTransform: 'uppercase' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--theme-primary, #660033)', textTransform: 'uppercase' }}>
                   ✅ {hi ? 'काम का फोटो' : 'Work Done Photo'}
                 </p>
                 <a href={c.resolution_photo} target="_blank" rel="noreferrer">
                   <img src={c.resolution_photo} alt="resolution" style={{
                     width: '100%', borderRadius: 'var(--radius-md)', maxHeight: 160, objectFit: 'cover',
-                    border: '1.5px solid var(--green-300)',
+                    border: '1.5px solid var(--theme-component-border, #bfbfbf)',
                   }} />
                 </a>
               </div>
@@ -415,8 +420,8 @@ function ComplaintDetailCard({
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--gray-50)',
-            borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)' }}>
+          <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--theme-bg, #fff4e7)',
+            borderRadius: 'var(--radius-md)', border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--gray-700)', lineHeight: 1.6 }}>
               {c.description}
             </p>
@@ -426,14 +431,14 @@ function ComplaintDetailCard({
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             {c.citizen_name && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem',
-                color: 'var(--gray-600)', background: 'var(--gray-100)', padding: '5px 10px', borderRadius: 20 }}>
+                color: 'var(--gray-600)', background: 'var(--theme-bg, #fff4e7)', padding: '5px 10px', borderRadius: 20, border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
                 <User size={13} /> {c.citizen_name}
               </span>
             )}
             {c.citizen_phone && (
               <a href={`tel:${c.citizen_phone}`} style={{ display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: '0.8rem', color: 'var(--blue-600)', background: '#dbeafe',
-                padding: '5px 10px', borderRadius: 20, textDecoration: 'none' }}>
+                fontSize: '0.8rem', color: 'var(--theme-primary, #660033)', background: 'var(--theme-bg, #fff4e7)',
+                padding: '5px 10px', borderRadius: 20, textDecoration: 'none', border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
                 <Phone size={13} /> {c.citizen_phone}
               </a>
             )}
@@ -441,8 +446,8 @@ function ComplaintDetailCard({
 
           {/* Location */}
           {(c.address || (c.latitude && c.longitude)) && (
-            <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--green-50)',
-              borderRadius: 'var(--radius-md)', border: '1px solid var(--green-200)' }}>
+            <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--theme-bg, #fff4e7)',
+              borderRadius: 'var(--radius-md)', border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
               {c.address && (
                 <p style={{ margin: '0 0 8px', fontSize: '0.82rem', color: 'var(--gray-700)' }}>
                   📍 {c.address}
@@ -456,7 +461,7 @@ function ComplaintDetailCard({
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
                       padding: '7px 12px', borderRadius: 'var(--radius-sm)',
-                      background: '#15803d', color: '#fff',
+                      background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))', color: '#fff',
                       fontWeight: 700, fontSize: '0.78rem', textDecoration: 'none',
                     }}
                   >
@@ -473,9 +478,9 @@ function ComplaintDetailCard({
 
           {/* Resolution Info (if resolved) */}
           {c.resolution_note && (
-            <div style={{ marginBottom: 14, padding: '12px 14px', background: '#f0fdf4',
-              borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0' }}>
-              <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--green-700)', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: 14, padding: '12px 14px', background: 'var(--theme-bg, #fff4e7)',
+              borderRadius: 'var(--radius-md)', border: '1.5px solid var(--theme-component-border, #bfbfbf)' }}>
+              <p style={{ margin: '0 0 4px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--theme-primary, #660033)', textTransform: 'uppercase' }}>
                 ✅ {hi ? 'हल का विवरण' : 'Resolution Note'}
               </p>
               <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--gray-700)' }}>
@@ -596,7 +601,7 @@ export default function DeptDashboard() {
         .eq('id', user.id)
         .single();
 
-      if (!data || !['dept_staff', 'admin'].includes(data.role ?? '')) {
+      if (!data || !STAFF_ROLES.includes(data.role ?? '')) {
         await supabase.auth.signOut();
         navigate('/dept/login');
         return;
@@ -611,15 +616,24 @@ export default function DeptDashboard() {
         setProfile({ ...data, dept_name: dept?.name ?? null, dept_slug: dept?.slug ?? null,
           dept_color: dept?.color ?? null, dept_icon: dept?.icon ?? null });
       } else {
-        setProfile({ ...data, dept_name: null, dept_slug: null, dept_color: null, dept_icon: null });
+        const defaultName = data.role === 'municipal_administrator'
+          ? (hi ? 'नगर निगम प्रशासन' : 'Municipal Administration')
+          : (hi ? 'समस्त विभाग / संचालन' : 'All Departments / Operations');
+        setProfile({
+          ...data,
+          dept_name: defaultName,
+          dept_slug: 'all',
+          dept_color: '#660033',
+          dept_icon: '🏛️',
+        });
       }
       setProfileLoading(false);
     })();
-  }, [user, navigate]);
+  }, [user, navigate, hi]);
 
   // Fetch complaints whenever profile/filters change
   useEffect(() => {
-    if (profile?.linked_department_id) {
+    if (profile) {
       fetchComplaints(statusFilter, search);
     }
   }, [profile, statusFilter, fetchComplaints]);
@@ -646,7 +660,7 @@ export default function DeptDashboard() {
   if (profileLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--gray-50)' }}>
+        background: 'var(--theme-bg, #fff4e7)' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 16px' }} />
           <p style={{ color: 'var(--gray-500)' }}>{hi ? 'लोड हो रहा है...' : 'Loading...'}</p>
@@ -656,7 +670,7 @@ export default function DeptDashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--gray-50)', fontFamily: 'var(--font-primary)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--theme-bg, #fff4e7)', fontFamily: 'var(--font-primary)' }}>
 
       {/* ── Top Bar ────────────────────────────────────────────────────── */}
       <header style={{

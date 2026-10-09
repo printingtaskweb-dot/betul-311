@@ -33,15 +33,17 @@ export function useDeptComplaints(departmentId: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchComplaints = useCallback(async (statusFilter?: string, searchQuery?: string) => {
-    if (!departmentId) return;
     setLoading(true);
     setError(null);
     try {
       let query = supabase
         .from('dept_complaints')
         .select('*')
-        .eq('department_id', departmentId)
         .order('created_at', { ascending: false });
+
+      if (departmentId && departmentId !== 'all') {
+        query = query.eq('department_id', departmentId);
+      }
 
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -60,8 +62,11 @@ export function useDeptComplaints(departmentId: string | null) {
         let fbQuery = supabase
           .from('complaints')
           .select('*, department:departments(*)')
-          .eq('department_id', departmentId)
           .order('created_at', { ascending: false });
+
+        if (departmentId && departmentId !== 'all') {
+          fbQuery = fbQuery.eq('department_id', departmentId);
+        }
 
         if (statusFilter && statusFilter !== 'all') {
           fbQuery = fbQuery.eq('status', statusFilter);
@@ -79,7 +84,7 @@ export function useDeptComplaints(departmentId: string | null) {
           ...row,
           dept_name: row.department?.name || '',
           dept_slug: row.department?.slug || '',
-          dept_color: row.department?.color || '#16a34a',
+          dept_color: row.department?.color || '#660033',
           dept_icon: row.department?.icon || '🏢',
           resolution_note: null,
           resolution_photo: null,
