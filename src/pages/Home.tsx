@@ -7,8 +7,7 @@ import { StatsSection } from '../components/StatsSection';
 import { ServicesGrid } from '../components/ServicesGrid';
 import { RecentComplaints } from '../components/RecentComplaints';
 import { BottomNav } from '../components/BottomNav';
-import { PosterShowcase } from '../components/PosterShowcase';
-import { Globe, LogOut, Building2, Sparkles } from 'lucide-react';
+import { Globe, LogOut, Building2 } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const { language, setLanguage, user, profile, signOut } = useAuth();
@@ -97,24 +96,6 @@ export const Home: React.FC = () => {
               style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--gray-700)', transition: 'var(--transition)' }}
             >
               {t(language, 'trackComplaint')}
-            </Link>
-            <Link
-              to="/showcase"
-              style={{
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                color: 'var(--theme-primary, #660033)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                background: 'rgba(102, 0, 51, 0.08)',
-                padding: '5px 12px',
-                borderRadius: 'var(--radius-full)',
-                transition: 'var(--transition)',
-              }}
-            >
-              <Sparkles size={14} />
-              {language === 'hi' ? 'एआई टूल्स' : 'AI Tools'}
             </Link>
             <Link
               to="/dept/login"
@@ -219,9 +200,6 @@ export const Home: React.FC = () => {
 
       {/* ── Hero Carousel ── */}
       <HeroBanner />
-
-      {/* ── Aesthetic AI Tools Poster Showcase (Burgundy / Gerandy Theme + GSAP) ── */}
-      <PosterShowcase />
 
       {/* ── Quick Action Cards ── */}
       <section className="app-container" style={{ marginTop: 20 }}>

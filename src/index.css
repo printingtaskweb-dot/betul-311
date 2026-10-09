@@ -1,8 +1,8 @@
 /* =========================================================
-   IMC 311 / Betul 311 – Responsive Design & Typography System
+   IMC 311 / Betul 311 – Aesthetic Burgundy (Gerandy) Design System
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
 *, *::before, *::after {
   margin: 0;
@@ -12,17 +12,27 @@
 
 :root {
   /* =========================================================================
-     🎨 CENTRAL THEME CUSTOMIZATION
-     Modify these 3 core variables to easily change colors across the entire app:
-     1. --theme-bg: Application Background (#fff4e7)
-     2. --theme-primary: Primary Brand, Headers, Highlights & Action Buttons (#660033)
-     3. --theme-component: Cards, Boxes, Panels & Component Backgrounds (#d9d9d9)
+     🎨 CENTRAL AESTHETIC THEME TOKENS (Burgundy / Gerandy Theme)
+     3 Core colors: #fff4e7 (base cream), #d9d9d9 (components), #660033 (burgundy)
      ========================================================================= */
   --theme-bg: #fff4e7;
   --theme-primary: #660033;
   --theme-component: #d9d9d9;
   --theme-component-border: #bfbfbf;
   --theme-component-hover: #cecece;
+
+  /* Aesthetic Poster Design System Tokens */
+  --bg-1: #fff4e7;
+  --bg-2: #f2e7d8;
+  --platform-1: #fff9f0;
+  --platform-2: #d9d0c1;
+  --tile: #260013;
+  --tile-2: #4d0026;
+  --ink: #33001a;
+  --ink-soft: #593345;
+  --mute: #8a737d;
+  --hairline: rgba(102, 0, 51, 0.25);
+  --accent: #660033;
 
   /* Global Token Aliases */
   --bg-page: var(--theme-bg);
@@ -33,10 +43,11 @@
   --color-border: var(--theme-component-border);
 
   /* Fonts */
-  --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-hindi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
+  --font-primary: 'Geist', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --font-hindi: 'Noto Sans Devanagari', 'Geist', sans-serif;
 
-  /* Primary Palette (Tonal variants derived from #660033) */
+  /* Primary Palette (Derivations of Burgundy #660033) */
   --primary-50:  #fff4e7;
   --primary-100: #fae1eb;
   --primary-200: #f4c2d7;
@@ -48,7 +59,7 @@
   --primary-800: #3b001d;
   --primary-900: #290014;
 
-  /* Mapped Civic Palette (Aliases for existing green-* variables) */
+  /* Mapped Civic Palette */
   --green-50:  var(--theme-bg);
   --green-100: #fae1eb;
   --green-200: #f4c2d7;
@@ -60,21 +71,7 @@
   --green-800: #3b001d;
   --green-900: #290014;
 
-  /* Accent – Indigo / Blue */
-  --indigo-50:  var(--theme-component);
-  --indigo-500: #660033;
-  --indigo-600: #4d0026;
-  --indigo-700: #3b001d;
-  --blue-500:   var(--theme-primary);
-  --blue-600:   #660033;
-
-  /* Accent – Warm */
-  --amber-400: #fbbf24;
-  --amber-500: #f59e0b;
-  --red-500:   #ef4444;
-  --red-600:   #dc2626;
-
-  /* Neutrals mapped to #fff4e7 and #d9d9d9 */
+  /* Neutrals mapped to cream (#fff4e7) and component gray (#d9d9d9) */
   --gray-50:  var(--theme-bg);
   --gray-100: var(--theme-component);
   --gray-200: var(--theme-component-border);
@@ -84,11 +81,13 @@
   --gray-600: #383838;
   --gray-700: #242424;
   --gray-800: #141414;
-  --gray-900: #050505;
+  --gray-900: var(--ink);
 
   /* Gradients */
   --primary-gradient: linear-gradient(135deg, #660033 0%, #800040 100%);
   --header-gradient: linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%);
+  --card-gradient: linear-gradient(180deg, #fff9f0 0%, #ece1d2 100%);
+  --tile-gradient: linear-gradient(180deg, #4d0026 0%, #260013 100%);
 
   /* Responsive Spacing Scale */
   --space-xs: clamp(4px, 1vw, 6px);
@@ -106,20 +105,24 @@
   --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
   --text-3xl: clamp(1.85rem, 1.5rem + 1.5vw, 2.5rem);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
-  --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
-  --shadow-lg: 0 12px 30px rgba(15,23,42,0.12);
-  --shadow-glow: 0 0 24px rgba(34,197,94,0.25);
+  /* Aesthetic Shadows & Insets */
+  --shadow-sm: 0 4px 14px rgba(102, 0, 51, 0.08);
+  --shadow-md: 0 14px 28px -8px rgba(80, 10, 40, 0.16);
+  --shadow-lg: 0 24px 44px -16px rgba(80, 10, 40, 0.22);
+  --shadow-glow: 0 0 24px rgba(102, 0, 51, 0.3);
+  --shadow-pill: 0 36px 60px -22px rgba(80, 10, 40, 0.28),
+                 0 18px 30px -10px rgba(80, 10, 40, 0.16),
+                 inset 0 2px 0 rgba(255, 244, 231, 0.95),
+                 inset 0 -3px 5px rgba(102, 0, 51, 0.16);
 
   /* Border radius */
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
   --radius-full: 9999px;
 
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html {
@@ -127,15 +130,33 @@ html {
   font-size: 16px;
 }
 
+html,
 body {
+  background: radial-gradient(
+    120% 70% at 50% 0%,
+    #fff4e7 0%,
+    #faeedf 60%,
+    #f2e3d0 100%
+  ) fixed;
+  color: var(--ink);
   font-family: var(--font-primary);
-  background-color: var(--theme-bg);
-  color: var(--gray-900);
+  min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
-  overflow-x: hidden;
+}
+
+/* Atmospheric Grain Overlay */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0.4 0 0 0 0.1  0 0 0 0 0.05  0.2 0 0 0 0.1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 /* Typography styles */
@@ -143,7 +164,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-primary);
   font-weight: 800;
   letter-spacing: -0.025em;
-  color: var(--gray-900);
+  color: var(--ink);
   line-height: 1.25;
 }
 
@@ -169,6 +190,27 @@ button {
   font-family: inherit;
   border: none;
   outline: none;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.6, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Form inputs & controls */
+input, textarea, select {
+  font-family: var(--font-primary);
+  background-color: var(--bg-1, #fff4e7) !important;
+  border: 1.5px solid var(--theme-component-border, #bfbfbf) !important;
+  color: var(--ink, #33001a) !important;
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--theme-primary, #660033) !important;
+  box-shadow: 0 0 0 3px rgba(102, 0, 51, 0.15) !important;
+  outline: none;
 }
 
 /* Scrollbar */
@@ -177,12 +219,25 @@ button {
 ::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary-700); }
 
-/* Global Component & Card Defaults */
+/* Global Component & Card Defaults (Elevated aesthetic) */
 .card-hover,
 .card-component,
 .app-card {
-  background-color: var(--theme-component);
-  border: 1.5px solid var(--theme-component-border);
+  background: var(--card-gradient, linear-gradient(180deg, #fff9f0 0%, #ece1d2 100%));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 36px -14px rgba(80, 10, 40, 0.15),
+              0 6px 14px -4px rgba(80, 10, 40, 0.06),
+              inset 0 1px 0 rgba(255, 244, 231, 0.9),
+              inset 0 -2px 4px rgba(102, 0, 51, 0.08);
+  transition: transform 0.4s cubic-bezier(0.6, 0, 0.2, 1), box-shadow 0.4s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 48px -18px rgba(80, 10, 40, 0.24),
+              0 10px 20px -6px rgba(80, 10, 40, 0.1),
+              inset 0 1px 0 rgba(255, 244, 231, 0.95);
 }
 
 /* Containers */
@@ -252,18 +307,7 @@ button {
   }
 }
 
-/* Card hover */
-.card-hover {
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-
-.card-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Bottom Nav responsive handling:
-   Show on mobile/tablet, hide on large desktop where header navigation takes over */
+/* Bottom Nav responsive handling */
 .mobile-bottom-nav {
   display: flex;
 }
@@ -294,30 +338,11 @@ button {
 }
 .fade-in { animation: fadeIn 0.3s ease forwards; }
 
-@keyframes bounceIn {
-  0%   { transform: scale(0.3); opacity: 0; }
-  50%  { transform: scale(1.05); }
-  70%  { transform: scale(0.95); }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes pulse-burgundy {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(102,0,51,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(102,0,51,0); }
 }
 
-@keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-  50%       { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
-}
-
-.shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Brand badge styling */
 .admin-badge-pulse {
-  animation: pulse-green 2.5s infinite;
+  animation: pulse-burgundy 2.5s infinite;
 }
