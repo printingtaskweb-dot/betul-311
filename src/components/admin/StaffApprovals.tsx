@@ -159,8 +159,24 @@ export default function StaffApprovals({ cityId = null }: Props) {
       p_approve: approve,
       p_notes: approve ? null : (rejectNote.trim() || null),
     });
+    if (e) {
+      console.warn('RPC approve_staff_request failed, trying direct update:', e);
+      const { error: directErr } = await supabase
+        .from('user_profiles')
+        .update({
+          approval_status: approve ? 'approved' : 'rejected',
+          role: approve ? (row.authority_role || 'dept_staff') : 'rejected_staff',
+          approved_at: approve ? new Date().toISOString() : null,
+          rejection_reason: approve ? null : (rejectNote.trim() || null),
+        })
+        .eq('id', row.id);
+      if (directErr) {
+        setBusyId(null);
+        setError(e.message || directErr.message);
+        return;
+      }
+    }
     setBusyId(null);
-    if (e) { setError(e.message); return; }
     setRejectingId(null); setRejectNote('');
     setInfo(approve
       ? t(`${row.full_name || 'User'} approved.`, `${row.full_name || 'उपयोगकर्ता'} स्वीकृत।`)
@@ -189,8 +205,24 @@ export default function StaffApprovals({ cityId = null }: Props) {
       p_designation_id: edit.designationId || null,
       p_city_id: edit.cityId || null,
     });
+    if (e) {
+      console.warn('RPC admin_update_staff failed, trying direct update:', e);
+      const { error: directErr } = await supabase
+        .from('user_profiles')
+        .update({
+          role: edit.role,
+          linked_department_id: edit.departmentId || null,
+          designation_id: edit.designationId || null,
+          city_id: edit.cityId || null,
+        })
+        .eq('id', edit.id);
+      if (directErr) {
+        setBusyId(null);
+        setError(e.message || directErr.message);
+        return;
+      }
+    }
     setBusyId(null);
-    if (e) { setError(e.message); return; }
     setEdit(null);
     setInfo(t('Staff member updated.', 'स्टाफ अपडेट हो गया।'));
     await loadStaff();

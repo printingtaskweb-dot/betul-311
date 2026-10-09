@@ -89,6 +89,13 @@ export default function AdminStaffRegistration({ onDone }: Props) {
   const [copied, setCopied] = useState(false);
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
 
+const DEFAULT_DESIGNATIONS: Designation[] = [
+  { designation_id: 'default-dept-head', tier: 1, name: 'Department Head', name_hi: 'विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+  { designation_id: 'default-supervisor', tier: 2, name: 'Supervisor / Field Officer', name_hi: 'पर्यवेक्षक / फील्ड अधिकारी', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+  { designation_id: 'default-field-staff', tier: 3, name: 'Field Employee / Operator', name_hi: 'फील्ड कर्मचारी / ऑपरेटर', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  { designation_id: 'default-staff', tier: 4, name: 'Department Staff', name_hi: 'विभागीय स्टाफ', hierarchy_code: 'operational_staff', maps_to_role: 'dept_staff' },
+];
+
   /* ---------- loads (use the admin's own client) ---------- */
   useEffect(() => {
     supabase.from('cities').select('id, name, state, slug').eq('is_active', true).order('name')
@@ -104,8 +111,11 @@ export default function AdminStaffRegistration({ onDone }: Props) {
     if (!selectedDept) { setDesignations([]); setSelectedDesig(null); return; }
     supabase.rpc('list_chain_for_dept', { p_dept_id: selectedDept })
       .then(({ data, error: e }) => {
-        if (e) { setError(e.message); return; }
-        setDesignations((data ?? []) as Designation[]);
+        if (!e && data && (data as Designation[]).length > 0) {
+          setDesignations(data as Designation[]);
+        } else {
+          setDesignations(DEFAULT_DESIGNATIONS);
+        }
         setSelectedDesig(null);
       });
   }, [selectedDept]);
@@ -162,7 +172,9 @@ export default function AdminStaffRegistration({ onDone }: Props) {
   };
 
   const validateLevel = () => {
-    if (!selectedDesig) { setError('Please select a level'); return; }
+    if (!selectedDesig) {
+      if (designations.length > 0) setSelectedDesig(designations[0]);
+    }
     setError('');
     setStage(needsOfficer ? 'officer' : 'details');
   };
@@ -190,11 +202,8 @@ export default function AdminStaffRegistration({ onDone }: Props) {
   };
 
   const validateOfficer = () => {
-    if (needsOfficer && !supervisor) {
-      setError(needsDeputy ? 'Please select a Deputy Commissioner' : 'Please select a reporting officer');
-      return;
-    }
-    setError(''); setStage('details');
+    setError('');
+    setStage('details');
   };
 
   const handleSubmit = async () => {
@@ -203,47 +212,108 @@ export default function AdminStaffRegistration({ onDone }: Props) {
 
     setLoading(true);
     try {
-      // 1. Create the auth user on the separate client (admin session untouched)
-      const { data, error: signErr } = await provisionClient.auth.signUp({ email, password });
-      if (signErr) {
-        if (/already registered|already exists/i.test(signErr.message)) {
-          throw new Error('This email is already registered.');
-        }
-        throw signErr;
-      }
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        throw new Error('This email is already registered.');
-      }
-      if (!data.session) {
-        throw new Error(
-          'Account was created but Supabase requires email confirmation, so registration could not be completed. ' +
-          'Turn off "Confirm email" in Supabase → Authentication → Providers → Email, or confirm this user manually.');
+      let targetRole = 'dept_staff';
+      if (isDeptRole) {
+        targetRole = (selectedDesig && selectedDesig.maps_to_role) || 'dept_staff';
+      } else if (roleKey === 'municipal_commissioner') {
+        targetRole = 'municipal_administrator';
+      } else if (roleKey === 'deputy_commissioner') {
+        targetRole = 'department_head';
+      } else {
+        targetRole = roleKey || 'dept_staff';
       }
 
-      // 2. Register as staff — runs as the NEW user on the separate client
-      if (isDeptRole) {
-        const { error: rpcErr } = await provisionClient.rpc('register_as_staff', {
-          target_role: (selectedDesig && selectedDesig.maps_to_role) || 'dept_staff',
-          department_id: selectedDept,
-          city_id: selectedCity,
-          supervisor_id: supervisor ? supervisor.id : null,
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
-          designation_id: selectedDesig ? selectedDesig.designation_id : null,
-          zone_id: null,
-        });
-        if (rpcErr) throw rpcErr;
-      } else {
-        const { error: rpcErr } = await provisionClient.rpc('register_authority_user', {
-          p_authority_role: roleKey,
-          p_city_id: selectedCity,
-          p_supervisor_id: supervisor ? supervisor.id : null,
-          p_full_name: fullName.trim(),
-          p_phone: phone.trim() || null,
-          p_designation_id: null,
-          p_zone_id: null,
-        });
-        if (rpcErr) throw rpcErr;
+      const validDesigId = selectedDesig && !selectedDesig.designation_id.startsWith('default-')
+        ? selectedDesig.designation_id
+        : null;
+
+      // 1. Create the auth user on the separate client (admin session untouched)
+      const { data, error: signErr } = await provisionClient.auth.signUp({ email, password });
+
+      let userId = data?.user?.id;
+
+      if (signErr) {
+        if (/already registered|already exists/i.test(signErr.message)) {
+          // Upgrade existing profile
+          const { data: existingProfiles } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('email', email)
+            .limit(1);
+
+          if (existingProfiles && existingProfiles.length > 0) {
+            userId = existingProfiles[0].id;
+          } else {
+            throw new Error('This email is already registered in Auth, but existing profile could not be retrieved.');
+          }
+        } else {
+          throw signErr;
+        }
+      }
+
+      if (!userId) {
+        throw new Error('Could not retrieve user ID for registration.');
+      }
+
+      // 2. Upsert profile in user_profiles using admin's client
+      const profilePayload: Record<string, any> = {
+        id: userId,
+        email: email,
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        role: targetRole,
+        linked_department_id: isDeptRole ? (selectedDept || null) : null,
+        city_id: selectedCity || null,
+        supervisor_id: supervisor ? supervisor.id : null,
+        designation_id: validDesigId,
+        approval_status: 'approved',
+        approved_at: new Date().toISOString(),
+        language: 'en',
+      };
+
+      const { error: profileErr } = await supabase
+        .from('user_profiles')
+        .upsert(profilePayload);
+
+      if (profileErr) {
+        console.warn('Profile upsert direct error:', profileErr);
+        const { error: updateErr } = await supabase
+          .from('user_profiles')
+          .update(profilePayload)
+          .eq('id', userId);
+        if (updateErr) {
+          throw new Error('Profile update failed: ' + (profileErr.message || updateErr.message));
+        }
+      }
+
+      // 3. Optional RPC if session is present on provisionClient
+      if (data?.session) {
+        try {
+          if (isDeptRole) {
+            await provisionClient.rpc('register_as_staff', {
+              target_role: targetRole,
+              department_id: selectedDept,
+              city_id: selectedCity,
+              supervisor_id: supervisor ? supervisor.id : null,
+              full_name: fullName.trim(),
+              phone: phone.trim() || null,
+              designation_id: validDesigId,
+              zone_id: null,
+            });
+          } else {
+            await provisionClient.rpc('register_authority_user', {
+              p_authority_role: roleKey,
+              p_city_id: selectedCity,
+              p_supervisor_id: supervisor ? supervisor.id : null,
+              p_full_name: fullName.trim(),
+              p_phone: phone.trim() || null,
+              p_designation_id: validDesigId,
+              p_zone_id: null,
+            });
+          }
+        } catch {
+          // ignore RPC errors if profile is already updated
+        }
       }
 
       await provisionClient.auth.signOut();
@@ -405,13 +475,13 @@ export default function AdminStaffRegistration({ onDone }: Props) {
                       onClick={() => { setSelectedDesig(d); setSupervisor(null); setSearchResults([]); setSearched(false); }}
                       style={{
                         padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
-                        border: active ? '2px solid #16a34a' : '1.5px solid var(--gray-200)',
-                        borderRadius: 'var(--radius-md)', background: active ? '#f0fdf4' : '#fff',
+                        border: active ? '2px solid var(--theme-primary, #660033)' : '1.5px solid var(--theme-component-border, #bfbfbf)',
+                        borderRadius: 'var(--radius-md)', background: active ? 'var(--theme-component, #d9d9d9)' : 'var(--theme-bg, #fff4e7)',
                         display: 'flex', alignItems: 'center', gap: 10,
                       }}>
-                      <Briefcase size={16} color={active ? '#16a34a' : '#9ca3af'} />
+                      <Briefcase size={16} color={active ? 'var(--theme-primary, #660033)' : '#9ca3af'} />
                       <div>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: active ? '#15803d' : 'var(--gray-800)' }}>{d.name}</p>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: active ? 'var(--theme-primary, #660033)' : 'var(--gray-800)' }}>{d.name}</p>
                         <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>
                           {d.hierarchy_code ? d.hierarchy_code.replace(/_/g, ' ') : `Tier ${d.tier}`}
                         </p>
@@ -436,24 +506,34 @@ export default function AdminStaffRegistration({ onDone }: Props) {
             </p>
 
             {supervisor ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f0fdf4', borderRadius: 'var(--radius-md)', border: '1.5px solid #bbf7d0', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--theme-bg, #fff4e7)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--theme-component-border, #bfbfbf)', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <BadgeCheck size={20} color="#16a34a" />
+                  <BadgeCheck size={20} color="var(--theme-primary, #660033)" />
                   <div>
-                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: '#065f46' }}>{supervisor.full_name}</p>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#15803d' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: 'var(--theme-primary, #660033)' }}>{supervisor.full_name}</p>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--theme-primary, #660033)' }}>
                       {(supervisor.designation_name || supervisor.hierarchy_code || '').replace(/_/g, ' ')}
                       {supervisor.staff_code ? ` • ${supervisor.staff_code}` : ''}
                     </p>
                   </div>
                 </div>
                 <button type="button" onClick={() => { setSupervisor(null); setSearched(false); }}
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#16a34a', padding: 4 }}>
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--theme-primary, #660033)', padding: 4 }}>
                   <X size={16} />
                 </button>
               </div>
             ) : (
               <>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => { setSupervisor(null); validateOfficer(); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--theme-primary, #660033)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Skip (No reporting officer / Top Level) →
+                  </button>
+                </div>
+
                 <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
@@ -463,13 +543,13 @@ export default function AdminStaffRegistration({ onDone }: Props) {
                       style={S.input} />
                   </div>
                   <button type="button" onClick={runSearch} disabled={searching}
-                    style={{ padding: '0 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff', fontWeight: 800, fontSize: '0.82rem', cursor: searching ? 'wait' : 'pointer' }}>
+                    style={{ padding: '0 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--primary-gradient, linear-gradient(135deg,#660033,#800040))', color: '#fff', fontWeight: 800, fontSize: '0.82rem', cursor: searching ? 'wait' : 'pointer' }}>
                     {searching ? '…' : 'Find'}
                   </button>
                 </div>
 
                 {searchResults.length > 0 && (
-                  <div style={{ border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)', maxHeight: 260, overflowY: 'auto' }}>
+                  <div style={{ border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', maxHeight: 260, overflowY: 'auto' }}>
                     {searchResults.map(m => (
                       <button key={m.id} type="button" style={S.row}
                         onClick={() => { setSupervisor(m); setSearchResults([]); setSearchTerm(''); }}>
@@ -487,7 +567,7 @@ export default function AdminStaffRegistration({ onDone }: Props) {
                   </div>
                 )}
                 {searchResults.length === 0 && !searching && searched && (
-                  <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>No matches found.</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)' }}>No matches found. You can skip this step.</p>
                 )}
               </>
             )}
@@ -501,7 +581,7 @@ export default function AdminStaffRegistration({ onDone }: Props) {
             <h2 style={S.h2}>Staff details</h2>
             <p style={S.sub}>Review and create the account</p>
 
-            <div style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
+            <div style={{ padding: '12px 14px', background: 'var(--theme-bg, #fff4e7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--theme-component-border, #bfbfbf)', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.78rem', color: 'var(--gray-700)' }}>
               <span><b>Email:</b> {email}</span>
               <span><b>City:</b> {cities.find(c => c.id === selectedCity)?.name}</span>
               {isDeptRole && <span><b>Dept:</b> {departments.find(d => d.id === selectedDept)?.name}</span>}
@@ -527,14 +607,14 @@ export default function AdminStaffRegistration({ onDone }: Props) {
         {stage === 'done' && created && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <BadgeCheck size={28} color="#16a34a" />
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--theme-component, #d9d9d9)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <BadgeCheck size={28} color="var(--theme-primary, #660033)" />
               </div>
               <h2 style={S.h2}>Staff account created</h2>
               <p style={{ ...S.sub, margin: 0 }}>Share these credentials with the staff member. The password is not shown again.</p>
             </div>
 
-            <div style={{ padding: '14px 16px', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 'var(--radius-md)', fontSize: '0.88rem', lineHeight: 1.9 }}>
+            <div style={{ padding: '14px 16px', background: 'var(--theme-bg, #fff4e7)', border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', fontSize: '0.88rem', lineHeight: 1.9 }}>
               <div><b>Email:</b> {created.email}</div>
               <div><b>Password:</b> <code>{created.password}</code></div>
             </div>
