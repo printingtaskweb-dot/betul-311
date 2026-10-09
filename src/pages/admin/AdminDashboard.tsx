@@ -4,16 +4,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
 import StaffApprovals from '../../components/admin/StaffApprovals';
+import AdminStaffRegistration from '../../components/admin/AdminStaffRegistration';
 
 import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
-import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users, UserPlus } from 'lucide-react';
+
+type Tab = 'complaints' | 'staff' | 'register';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const { departments, loading } = useDepartments();
-  const [activeTab, setActiveTab] = useState<'complaints' | 'staff'>('complaints');
+  const [activeTab, setActiveTab] = useState<Tab>('complaints');
   const [activeDept, setActiveDept] = useState<Department | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingStaffCount, setPendingStaffCount] = useState<number>(0);
@@ -54,6 +57,50 @@ export const AdminDashboard: React.FC = () => {
   if (authLoading || !user || !isAdmin) {
     return null;
   }
+
+  const navBtnStyle = (active: boolean, marginBottom: number): React.CSSProperties => ({
+    width: '100%',
+    textAlign: 'left',
+    padding: '10px 14px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    cursor: 'pointer',
+    marginBottom,
+    background: active ? 'var(--theme-primary, #660033)' : 'transparent',
+    color: active ? '#fff' : 'var(--gray-700)',
+    fontWeight: active ? 800 : 600,
+    fontSize: '0.88rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    transition: 'var(--transition)',
+  });
+
+  const sectionHeader = (icon: React.ReactNode, title: string, subtitle: string) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 'var(--radius-md)',
+            background: '#dcfce7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </div>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
+            {title}
+          </h2>
+          <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--gray-50)', display: 'flex', flexDirection: 'column' }}>
@@ -158,6 +205,7 @@ export const AdminDashboard: React.FC = () => {
           }}
           className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}
         >
+          {/* All Complaints */}
           <button
             onClick={() => {
               setActiveTab('complaints');
@@ -165,49 +213,22 @@ export const AdminDashboard: React.FC = () => {
               setMobileMenuOpen(false);
             }}
             style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              cursor: 'pointer',
-              marginBottom: 4,
-              background: activeTab === 'complaints' && activeDept === null ? 'var(--theme-primary, #660033)' : 'transparent',
-              color: activeTab === 'complaints' && activeDept === null ? '#fff' : 'var(--gray-700)',
-              fontWeight: activeTab === 'complaints' && activeDept === null ? 800 : 600,
-              fontSize: '0.88rem',
-              display: 'flex',
-              alignItems: 'center',
+              ...navBtnStyle(activeTab === 'complaints' && activeDept === null, 4),
+              justifyContent: 'flex-start',
               gap: 10,
-              transition: 'var(--transition)',
             }}
           >
             <span>🗂️</span> All Complaints
           </button>
 
+          {/* Staff Approvals */}
           <button
             onClick={() => {
               setActiveTab('staff');
               setActiveDept(null);
               setMobileMenuOpen(false);
             }}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              cursor: 'pointer',
-              marginBottom: 12,
-              background: activeTab === 'staff' ? 'var(--theme-primary, #660033)' : 'transparent',
-              color: activeTab === 'staff' ? '#fff' : 'var(--gray-700)',
-              fontWeight: activeTab === 'staff' ? 800 : 600,
-              fontSize: '0.88rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'var(--transition)',
-            }}
+            style={navBtnStyle(activeTab === 'staff', 4)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Users size={16} color={activeTab === 'staff' ? '#fff' : 'var(--gray-500)'} />
@@ -227,6 +248,21 @@ export const AdminDashboard: React.FC = () => {
                 {pendingStaffCount}
               </span>
             )}
+          </button>
+
+          {/* Register Staff */}
+          <button
+            onClick={() => {
+              setActiveTab('register');
+              setActiveDept(null);
+              setMobileMenuOpen(false);
+            }}
+            style={navBtnStyle(activeTab === 'register', 12)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <UserPlus size={16} color={activeTab === 'register' ? '#fff' : 'var(--gray-500)'} />
+              <span>Register Staff</span>
+            </div>
           </button>
 
           <div
@@ -301,34 +337,22 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         <main style={{ flex: 1, padding: 'clamp(14px, 2.5vw, 24px)', overflowX: 'hidden', minWidth: 0 }}>
-          {activeTab === 'staff' ? (
+          {activeTab === 'register' ? (
             <div>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 'var(--radius-md)',
-                      background: '#dcfce7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Users size={22} color="#15803d" />
-                  </div>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
-                      Staff Approvals &amp; Roles
-                    </h2>
-                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.82rem' }}>
-                      Approve or reject registrations, and update the role, department and level of existing staff
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+              {sectionHeader(
+                <UserPlus size={22} color="#15803d" />,
+                'Register Staff',
+                'Create a staff login and give the email and password to the officer',
+              )}
+              <AdminStaffRegistration onDone={() => void fetchPendingCount()} />
+            </div>
+          ) : activeTab === 'staff' ? (
+            <div>
+              {sectionHeader(
+                <Users size={22} color="#15803d" />,
+                'Staff Approvals & Roles',
+                'Approve or reject registrations, and update the role, department and level of existing staff',
+              )}
               <StaffApprovals onChanged={() => void fetchPendingCount()} />
             </div>
           ) : (
