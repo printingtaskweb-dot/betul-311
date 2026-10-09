@@ -619,8 +619,8 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
               <div><b>Password:</b> <code>{created.password}</code></div>
             </div>
 
-            <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#b45309' }}>
-              The account is pending. Approve it in the <b>Staff Approvals</b> tab so the staff member can log in.
+            <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: 'var(--theme-primary, #660033)', fontWeight: 700 }}>
+              ✅ The account has been created and automatically approved. The staff member can now log in immediately.
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

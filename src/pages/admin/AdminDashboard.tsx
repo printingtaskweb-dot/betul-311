@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
-import StaffApprovals from '../../components/admin/StaffApprovals';
 import AdminStaffRegistration from '../../components/admin/AdminStaffRegistration';
 
-import { supabase } from '../../lib/supabase';
 import type { Department } from '../../lib/supabase';
-import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, Users, UserPlus } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, UserPlus } from 'lucide-react';
 
-type Tab = 'complaints' | 'staff' | 'register';
+type Tab = 'complaints' | 'register';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +17,6 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('complaints');
   const [activeDept, setActiveDept] = useState<Department | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pendingStaffCount, setPendingStaffCount] = useState<number>(0);
 
   // Auth guard: must be logged in AND admin
   useEffect(() => {
@@ -27,26 +24,6 @@ export const AdminDashboard: React.FC = () => {
       navigate('/admin', { replace: true });
     }
   }, [user, isAdmin, authLoading, navigate]);
-
-  // Pending staff count (uses the approval-queue function, same list the
-  // Staff Approvals tab shows, so the badge always matches)
-  const fetchPendingCount = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.rpc('list_pending_approvals', { p_city_id: null });
-      if (error) {
-        console.error(error);
-        setPendingStaffCount(0);
-        return;
-      }
-      setPendingStaffCount(((data as unknown[] | null) ?? []).length);
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user && isAdmin) void fetchPendingCount();
-  }, [activeTab, user, isAdmin, fetchPendingCount]);
 
   const handleLogout = async () => {
     await signOut();
@@ -221,35 +198,6 @@ export const AdminDashboard: React.FC = () => {
             <span>🗂️</span> All Complaints
           </button>
 
-          {/* Staff Approvals */}
-          <button
-            onClick={() => {
-              setActiveTab('staff');
-              setActiveDept(null);
-              setMobileMenuOpen(false);
-            }}
-            style={navBtnStyle(activeTab === 'staff', 4)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Users size={16} color={activeTab === 'staff' ? '#fff' : 'var(--gray-500)'} />
-              <span>Staff Approvals</span>
-            </div>
-            {pendingStaffCount > 0 && (
-              <span
-                style={{
-                  background: '#d97706',
-                  color: '#fff',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: 12,
-                }}
-              >
-                {pendingStaffCount}
-              </span>
-            )}
-          </button>
-
           {/* Register Staff */}
           <button
             onClick={() => {
@@ -340,20 +288,11 @@ export const AdminDashboard: React.FC = () => {
           {activeTab === 'register' ? (
             <div>
               {sectionHeader(
-                <UserPlus size={22} color="#15803d" />,
+                <UserPlus size={22} color="var(--theme-primary, #660033)" />,
                 'Register Staff',
                 'Create a staff login and give the email and password to the officer',
               )}
-              <AdminStaffRegistration onDone={() => void fetchPendingCount()} />
-            </div>
-          ) : activeTab === 'staff' ? (
-            <div>
-              {sectionHeader(
-                <Users size={22} color="var(--theme-primary, #660033)" />,
-                'Staff Approvals & Roles',
-                'Approve or reject registrations, and update the role, department and level of existing staff',
-              )}
-              <StaffApprovals onChanged={() => void fetchPendingCount()} />
+              <AdminStaffRegistration onDone={() => {}} />
             </div>
           ) : (
             <div>
