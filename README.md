@@ -1,4 +1,4 @@
-# 🏛️ Betul 311 / IMC 311 Civic Engagement & Grievance Redressal Portal
+# 🏛️ Betul 48 / IMC 48 Civic Engagement & Grievance Redressal Portal
 
 A modern, component-based civic portal inspired by the Indore 311 platform for municipal corporations (IMC / Betul Municipal Council). Citizens can report civic issues with auto-detected GPS location and photos, track resolution status in real time, and verify fixes before complaints are officially closed.
 
