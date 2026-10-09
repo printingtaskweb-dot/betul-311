@@ -372,10 +372,10 @@ export const TrackComplaint: React.FC = () => {
                 >
                   {/* Exact Coordinates Row */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--green-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--theme-primary, #660033)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       🎯 {language === 'hi' ? 'सटीक GPS स्थान' : 'Exact GPS Coordinates'}
                     </span>
-                    <code style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--green-800)', background: '#fff', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--green-200)' }}>
+                    <code style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--theme-primary, #660033)', background: 'var(--theme-bg, #fff4e7)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--theme-component-border, #bfbfbf)' }}>
                       {complaint.latitude.toFixed(6)}, {complaint.longitude.toFixed(6)}
                     </code>
                   </div>
@@ -394,12 +394,12 @@ export const TrackComplaint: React.FC = () => {
                         gap: 6,
                         padding: '10px 14px',
                         borderRadius: 'var(--radius-sm)',
-                        background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                        background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
                         color: '#fff',
                         fontWeight: 800,
                         fontSize: '0.85rem',
                         textDecoration: 'none',
-                        boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+                        boxShadow: '0 2px 8px rgba(102,0,51,0.3)',
                         minWidth: 160,
                       }}
                     >
@@ -416,12 +416,12 @@ export const TrackComplaint: React.FC = () => {
                         gap: 6,
                         padding: '10px 14px',
                         borderRadius: 'var(--radius-sm)',
-                        background: '#fff',
-                        color: 'var(--blue-600)',
+                        background: 'var(--theme-component, #d9d9d9)',
+                        color: 'var(--theme-primary, #660033)',
                         fontWeight: 700,
                         fontSize: '0.85rem',
                         textDecoration: 'none',
-                        border: '1.5px solid var(--blue-600)',
+                        border: '1.5px solid var(--theme-primary, #660033)',
                       }}
                     >
                       <Compass size={15} />

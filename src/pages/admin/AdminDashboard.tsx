@@ -349,7 +349,7 @@ export const AdminDashboard: React.FC = () => {
           ) : activeTab === 'staff' ? (
             <div>
               {sectionHeader(
-                <Users size={22} color="#15803d" />,
+                <Users size={22} color="var(--theme-primary, #660033)" />,
                 'Staff Approvals & Roles',
                 'Approve or reject registrations, and update the role, department and level of existing staff',
               )}

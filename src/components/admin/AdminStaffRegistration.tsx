@@ -52,11 +52,11 @@ const genPassword = () => {
 
 const S = {
   label: { display: 'block', fontWeight: 700, fontSize: '0.82rem', marginBottom: 6, color: 'var(--gray-700)' } as React.CSSProperties,
-  select: { width: '100%', padding: '11px 36px 11px 40px', border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box', appearance: 'none', cursor: 'pointer' } as React.CSSProperties,
-  input: { width: '100%', padding: '11px 14px 11px 40px', border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', background: '#fff', outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
-  btnPrimary: { width: '100%', padding: 13, border: 'none', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 } as React.CSSProperties,
-  btnSecondary: { padding: '11px 16px', border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--gray-700)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 } as React.CSSProperties,
-  row: { padding: '10px 12px', border: 'none', borderBottom: '1px solid var(--gray-100)', background: '#fff', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' } as React.CSSProperties,
+  select: { width: '100%', padding: '11px 36px 11px 40px', border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', background: 'var(--theme-bg, #fff4e7)', outline: 'none', boxSizing: 'border-box', appearance: 'none', cursor: 'pointer' } as React.CSSProperties,
+  input: { width: '100%', padding: '11px 14px 11px 40px', border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', background: 'var(--theme-bg, #fff4e7)', outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
+  btnPrimary: { width: '100%', padding: 13, border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))', color: '#fff', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 } as React.CSSProperties,
+  btnSecondary: { padding: '11px 16px', border: '1.5px solid var(--theme-component-border, #bfbfbf)', borderRadius: 'var(--radius-md)', background: 'var(--theme-bg, #fff4e7)', color: 'var(--gray-700)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 } as React.CSSProperties,
+  row: { padding: '10px 12px', border: 'none', borderBottom: '1px solid var(--theme-component-border, #bfbfbf)', background: 'var(--theme-component, #d9d9d9)', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' } as React.CSSProperties,
   h2: { margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 900 } as React.CSSProperties,
   sub: { margin: '0 0 16px', fontSize: '0.8rem', color: 'var(--gray-500)' } as React.CSSProperties,
 };
@@ -283,11 +283,11 @@ export default function AdminStaffRegistration({ onDone }: Props) {
 
   /* ---------- render ---------- */
   return (
-    <div style={{ maxWidth: 520, background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
+    <div style={{ maxWidth: 520, background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--theme-component-border, #bfbfbf)', overflow: 'hidden' }}>
       {stage !== 'done' && (
         <div style={{ display: 'flex', gap: 3, padding: '0 24px', marginTop: 16 }}>
           {flow.map((s, i) => (
-            <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= stepIdx ? '#16a34a' : 'var(--gray-200)' }} />
+            <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= stepIdx ? 'var(--theme-primary, #660033)' : 'var(--theme-component-border, #bfbfbf)' }} />
           ))}
         </div>
       )}

@@ -51,12 +51,12 @@ export default function DeptLogin() {
     setEmail(''); setPassword(''); setError('');
   };
 
-  const pageBg = 'linear-gradient(135deg,#0f4c2a 0%,#16a34a 50%,#4ade80 100%)';
+  const pageBg = 'var(--header-gradient, linear-gradient(135deg, #4d0026 0%, #660033 50%, #800040 100%))';
   const btnPrimary: React.CSSProperties = {
     width: '100%', padding: 13, border: 'none', borderRadius: 'var(--radius-md)',
-    background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff', fontWeight: 800,
+    background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))', color: '#fff', fontWeight: 800,
     fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(22,163,74,0.35)',
+    justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(102,0,51,0.35)',
   };
   const linkBtn: React.CSSProperties = {
     marginTop: 10, width: '100%', padding: 10, border: 'none', background: 'none',
@@ -93,8 +93,8 @@ export default function DeptLogin() {
 
   return (
     <div style={{ minHeight: '100vh', background: pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ width: '100%', maxWidth: 440, background: '#fff', borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-        <div style={{ background: 'linear-gradient(135deg,#15803d,#16a34a)', padding: '22px 26px', textAlign: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 440, background: 'var(--theme-component, #d9d9d9)', borderRadius: 'var(--radius-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1.5px solid var(--theme-component-border, #bfbfbf)' }}>
+        <div style={{ background: 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))', padding: '22px 26px', textAlign: 'center' }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
             <Building2 size={26} color="#fff" />
           </div>
