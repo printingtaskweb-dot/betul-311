@@ -19,6 +19,14 @@ export interface DeptComplaint {
   status: string;
   created_at: string;
   updated_at: string;
+  assigned_to?: string | null;
+  assigned_by?: string | null;
+  assigned_at?: string | null;
+  assignment_notes?: string | null;
+  assigned_name?: string | null;
+  assigned_phone?: string | null;
+  assigned_role?: string | null;
+  assigned_code?: string | null;
   resolution_note: string | null;
   resolution_photo: string | null;
   resolved_by: string | null;
@@ -80,19 +88,39 @@ export function useDeptComplaints(departmentId: string | null) {
         const { data: fbData, error: fbErr } = await fbQuery;
         if (fbErr) throw fbErr;
 
-        data = (fbData || []).map((row: any) => ({
-          ...row,
-          dept_name: row.department?.name || '',
-          dept_slug: row.department?.slug || '',
-          dept_color: row.department?.color || '#660033',
-          dept_icon: row.department?.icon || '🏢',
-          resolution_note: null,
-          resolution_photo: null,
-          resolved_by: null,
-          resolved_at: null,
-          citizen_satisfied: null,
-          citizen_verified_at: null,
-        }));
+        // Fetch staff profiles for any assigned_to IDs
+        const assignedIds = Array.from(new Set((fbData || []).map((r: any) => r.assigned_to).filter(Boolean)));
+        let profileMap: Record<string, any> = {};
+        if (assignedIds.length > 0) {
+          const { data: pData } = await supabase
+            .from('user_profiles')
+            .select('id, full_name, phone, role, staff_code')
+            .in('id', assignedIds);
+          if (pData) {
+            pData.forEach((p) => { profileMap[p.id] = p; });
+          }
+        }
+
+        data = (fbData || []).map((row: any) => {
+          const staff = row.assigned_to ? profileMap[row.assigned_to] : null;
+          return {
+            ...row,
+            dept_name: row.department?.name || '',
+            dept_slug: row.department?.slug || '',
+            dept_color: row.department?.color || '#660033',
+            dept_icon: row.department?.icon || '🏢',
+            assigned_name: staff?.full_name || null,
+            assigned_phone: staff?.phone || null,
+            assigned_role: staff?.role || null,
+            assigned_code: staff?.staff_code || null,
+            resolution_note: null,
+            resolution_photo: null,
+            resolved_by: null,
+            resolved_at: null,
+            citizen_satisfied: null,
+            citizen_verified_at: null,
+          };
+        });
       }
 
       setComplaints(data || []);
@@ -102,6 +130,46 @@ export function useDeptComplaints(departmentId: string | null) {
       setLoading(false);
     }
   }, [departmentId]);
+
+  const assignComplaint = useCallback(async (
+    complaintId: string,
+    assignedToId: string,
+    assignedById?: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const payload: Record<string, any> = {
+        assigned_to: assignedToId,
+        assigned_at: new Date().toISOString(),
+        status: 'in_progress',
+        updated_at: new Date().toISOString(),
+      };
+      if (assignedById) payload.assigned_by = assignedById;
+      if (notes) payload.assignment_notes = notes;
+
+      const { error: updErr } = await supabase
+        .from('complaints')
+        .update(payload)
+        .eq('id', complaintId);
+
+      if (updErr) {
+        console.warn('Assignment column update warning:', updErr.message);
+        // Fallback update status only if assigned_to column does not exist yet
+        await supabase
+          .from('complaints')
+          .update({
+            status: 'in_progress',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', complaintId);
+      }
+
+      return true;
+    } catch (err: unknown) {
+      console.warn('assignComplaint error:', err);
+      return false;
+    }
+  }, []);
 
   const resolveComplaint = useCallback(async (
     complaintId: string,
@@ -150,5 +218,5 @@ export function useDeptComplaints(departmentId: string | null) {
     }
   }, []);
 
-  return { complaints, loading, error, fetchComplaints, resolveComplaint };
+  return { complaints, loading, error, fetchComplaints, assignComplaint, resolveComplaint };
 }

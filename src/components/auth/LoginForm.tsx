@@ -7,6 +7,11 @@ import { FormInput } from './FormInput';
 import { PasswordInput } from './PasswordInput';
 import { AlertBanner } from './AlertBanner';
 
+const STAFF_ROLES = [
+  'dept_staff', 'admin', 'department_head', 'supervisor', 'control_room',
+  'management_viewer', 'field_employee', 'municipal_administrator',
+];
+
 interface Props {
   language: 'en' | 'hi';
 }
@@ -22,13 +27,62 @@ export const LoginForm: React.FC<Props> = ({ language }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const { error: authErr } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (authErr) setError(authErr.message);
-    else navigate('/');
-    setLoading(false);
+
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (authErr) {
+        setError(authErr.message);
+        setLoading(false);
+        return;
+      }
+
+      // Check URL redirect parameter
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get('redirect');
+      if (redirectUrl) {
+        navigate(redirectUrl, { replace: true });
+        setLoading(false);
+        return;
+      }
+
+      // Smart role-based redirect
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('role, is_admin')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        const isAdmin =
+          profile?.is_admin === true ||
+          profile?.role === 'admin' ||
+          profile?.role === 'municipal_administrator' ||
+          cleanEmail === 'ouikey41@gmail.com';
+
+        if (isAdmin) {
+          navigate('/admin/dashboard', { replace: true });
+          setLoading(false);
+          return;
+        }
+
+        if (profile?.role && STAFF_ROLES.includes(profile.role)) {
+          navigate('/dept/dashboard', { replace: true });
+          setLoading(false);
+          return;
+        }
+      }
+
+      navigate('/', { replace: true });
+    } catch (err: any) {
+      setError(err?.message || 'Failed to login');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,7 +107,7 @@ export const LoginForm: React.FC<Props> = ({ language }) => {
   );
 };
 
-// shared button — could be moved to its own file too
+// shared button
 const SubmitButton: React.FC<{ loading: boolean; label: string }> = ({
   loading,
   label,

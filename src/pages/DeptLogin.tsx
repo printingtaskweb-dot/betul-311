@@ -60,7 +60,7 @@ export default function DeptLogin() {
 
       const { error: signErr } = await supabase.auth.signInWithPassword({ email: mail, password });
       if (signErr) throw signErr;
-      // redirect happens in the useEffect once profile loads
+      navigate('/dept/dashboard', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not sign in');
     } finally { setLoading(false); }
