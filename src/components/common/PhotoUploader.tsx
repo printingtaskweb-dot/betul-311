@@ -6,6 +6,7 @@ interface PhotoUploaderProps {
   preview?: string | null;
   onClear?: () => void;
   uploading?: boolean;
+  disabled?: boolean;
 }
 
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
@@ -13,12 +14,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   preview,
   onClear,
   uploading,
+  disabled,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   const handleFile = (file: File) => {
+    if (disabled || uploading) return;
     if (file && file.type.startsWith('image/')) {
       onFileSelected(file);
     }
@@ -101,24 +104,30 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button
             type="button"
+            disabled={disabled || uploading}
             onClick={() => cameraInputRef.current?.click()}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '10px 18px', borderRadius: 8, border: 'none',
-              background: '#6366f1', color: '#fff', fontWeight: 600,
-              cursor: 'pointer', fontSize: 14,
+              background: 'var(--primary-gradient, #660033)', color: '#fff', fontWeight: 600,
+              cursor: (disabled || uploading) ? 'not-allowed' : 'pointer',
+              opacity: (disabled || uploading) ? 0.6 : 1,
+              fontSize: 14,
             }}
           >
             <Camera size={16} /> Camera
           </button>
           <button
             type="button"
+            disabled={disabled || uploading}
             onClick={() => fileInputRef.current?.click()}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '10px 18px', borderRadius: 8, border: '1.5px solid #d1d5db',
-              background: '#fff', color: '#374151', fontWeight: 600,
-              cursor: 'pointer', fontSize: 14,
+              padding: '10px 18px', borderRadius: 8, border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+              background: 'var(--theme-component, #d9d9d9)', color: 'var(--gray-800, #374151)', fontWeight: 600,
+              cursor: (disabled || uploading) ? 'not-allowed' : 'pointer',
+              opacity: (disabled || uploading) ? 0.6 : 1,
+              fontSize: 14,
             }}
           >
             <Upload size={16} /> Gallery

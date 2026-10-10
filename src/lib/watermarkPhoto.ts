@@ -149,8 +149,7 @@ function drawWatermarked(
     lines.push({ text: tag, size: smallSize, weight: '700' });
   }
 
-  let bannerHeight = pad;
-  for (const l of lines) bannerHeight += lineGap;
+  let bannerHeight = pad + lines.length * lineGap;
   bannerHeight += Math.round(pad * 0.5);
 
   const bannerTop = height - bannerHeight;
