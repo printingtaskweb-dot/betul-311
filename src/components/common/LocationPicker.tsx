@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { MapPin, Loader2, Navigation, Compass, ExternalLink } from 'lucide-react';
+import { MapPin, Loader2, Navigation, ExternalLink } from 'lucide-react';
 
 interface LocationPickerProps {
   latitude: number | null;
@@ -20,166 +21,181 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   error,
   onDetect,
 }) => {
-  const directionsUrl =
-    latitude && longitude
-      ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
-      : null;
+  // Check null explicitly because 0 is a valid coordinate.
+  const locationReady =
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+
+  const directionsUrl = locationReady
+    ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+    : null;
 
   return (
     <div
       style={{
         background: 'var(--green-50)',
-        border: '1.5px solid var(--green-200)',
+        border: '1px solid var(--green-200)',
         borderRadius: 'var(--radius-md)',
-        padding: '14px 16px',
-        boxShadow: 'var(--shadow-sm)',
+        padding: '12px 14px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={18} color="var(--green-600)" />
-          <span style={{ fontWeight: 800, color: 'var(--green-900)', fontSize: '0.9rem' }}>
-            GPS Location & Navigation
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: 'var(--green-900)',
+          }}
+        >
+          {loading ? (
+            <Loader2 size={17} className="spin" />
+          ) : (
+            <MapPin size={17} />
+          )}
+
+          <span>
+            {loading
+              ? 'Getting location...'
+              : locationReady
+                ? 'Location ready'
+                : 'Location unavailable'}
           </span>
         </div>
+
         <button
           type="button"
           onClick={onDetect}
           disabled={loading}
+          aria-label="Refresh GPS location"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '7px 16px',
-            borderRadius: 'var(--radius-full)',
+            padding: '7px 12px',
+            borderRadius: 'var(--radius-sm)',
             border: 'none',
             background: 'var(--green-600)',
             color: '#fff',
             fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '0.8rem',
-            opacity: loading ? 0.75 : 1,
-            boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
-            transition: 'var(--transition)',
+            cursor: loading ? 'wait' : 'pointer',
+            fontSize: '0.78rem',
+            opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? <Loader2 size={14} className="spin" /> : <Navigation size={14} />}
-          {loading ? 'Detecting GPS…' : latitude ? 'Update Location' : 'Auto-detect Location'}
+          <Navigation size={14} />
+          Refresh
         </button>
       </div>
 
       {error && (
-        <div
+        <p
+          role="alert"
           style={{
-            marginTop: 10,
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-sm)',
-            background: '#fee2e2',
-            border: '1px solid #fecaca',
-            color: '#dc2626',
-            fontSize: '0.82rem',
-            lineHeight: 1.4,
+            margin: '10px 0 0',
+            color: '#b91c1c',
+            fontSize: '0.8rem',
+            lineHeight: 1.5,
           }}
         >
-          ⚠️ {error}
-        </div>
+          {error}
+        </p>
       )}
 
-      {latitude && longitude && (
-        <div style={{ marginTop: 12 }}>
-          {/* Coordinates and accuracy badge */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
-            <span
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                color: 'var(--theme-primary, #660033)',
-                background: 'var(--theme-bg, #fff4e7)',
-                padding: '3px 8px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--theme-component-border, #bfbfbf)',
-              }}
-            >
-              📍 {latitude.toFixed(6)}, {longitude.toFixed(6)}
-            </span>
-            {accuracy !== undefined && accuracy !== null && (
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: accuracy <= 15 ? 'var(--green-700)' : 'var(--amber-500)',
-                  background: accuracy <= 15 ? 'var(--green-100)' : '#fef3c7',
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-full)',
-                }}
-              >
-                🎯 Accuracy: ±{accuracy}m {accuracy <= 15 ? '(High Precision)' : '(Approximate)'}
-              </span>
-            )}
-          </div>
-
-          {/* Resolved street address */}
-          <p
+      {locationReady && (
+        <div style={{ marginTop: 10 }}>
+          <div
             style={{
-              fontSize: '0.82rem',
-              color: 'var(--gray-700)',
-              margin: '4px 0 10px',
-              lineHeight: 1.4,
+              fontFamily: 'monospace',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              overflowWrap: 'anywhere',
+              color: 'var(--theme-primary, #660033)',
             }}
           >
-            {address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`}
-          </p>
+            {latitude.toFixed(6)}, {longitude.toFixed(6)}
+          </div>
 
-          {/* Action buttons including Get Directions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {accuracy != null && Number.isFinite(accuracy) && (
+            <p
+              style={{
+                margin: '5px 0',
+                fontSize: '0.75rem',
+                color: 'var(--gray-600)',
+              }}
+            >
+              Reported GPS accuracy: ±{Math.round(accuracy)} m
+            </p>
+          )}
+
+          {address && (
+            <p
+              style={{
+                margin: '5px 0 0',
+                fontSize: '0.8rem',
+                color: 'var(--gray-700)',
+                lineHeight: 1.5,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {address}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginTop: 10,
+            }}
+          >
             {directionsUrl && (
               <a
                 href={directionsUrl}
                 target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--blue-600)',
-                  color: '#fff',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 6px rgba(37,99,235,0.25)',
-                }}
+                rel="noopener noreferrer"
+                style={linkStyle}
               >
-                <Compass size={14} /> Get Directions (Google Maps)
+                <Navigation size={13} />
+                Directions
               </a>
             )}
+
             <a
-              href={`https://maps.google.com/?q=${latitude},${longitude}`}
+              href={`https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`}
               target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: '0.78rem',
-                color: 'var(--gray-600)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
+              rel="noopener noreferrer"
+              style={linkStyle}
             >
-              <ExternalLink size={12} /> View Pin on Map
+              <ExternalLink size={13} />
+              View map
             </a>
           </div>
         </div>
       )}
-
-      {!latitude && !loading && !error && (
-        <p style={{ fontSize: '0.82rem', color: 'var(--gray-500)', margin: '8px 0 0' }}>
-          Tap "Auto-detect Location" to record accurate GPS coordinates so municipal teams can navigate directly to the spot.
-        </p>
-      )}
     </div>
   );
+};
+
+const linkStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  color: 'var(--green-700)',
+  fontSize: '0.78rem',
+  fontWeight: 700,
+  textDecoration: 'none',
 };
