@@ -89,11 +89,86 @@ export default function AdminStaffRegistration({ onDone }: Props) {
   const [copied, setCopied] = useState(false);
   const [created, setCreated] = useState<{ email: string; password: string; staffCode?: string } | null>(null);
 
-const DEFAULT_DESIGNATIONS: Designation[] = [
-  { designation_id: 'default-dept-head', tier: 1, name: 'Department Head', name_hi: 'विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
-  { designation_id: 'default-supervisor', tier: 2, name: 'Supervisor / Field Officer', name_hi: 'पर्यवेक्षक / फील्ड अधिकारी', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
-  { designation_id: 'default-field-staff', tier: 3, name: 'Field Employee / Operator', name_hi: 'फील्ड कर्मचारी / ऑपरेटर', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
-  { designation_id: 'default-staff', tier: 4, name: 'Department Staff', name_hi: 'विभागीय स्टाफ', hierarchy_code: 'operational_staff', maps_to_role: 'dept_staff' },
+const DEPARTMENT_DESIGNATIONS_MAP: Record<string, Designation[]> = {
+  sanitation: [
+    { designation_id: 'default-san-1', tier: 1, name: 'Health / Sanitation Officer', name_hi: 'स्वास्थ्य / स्वच्छता अधिकारी', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-san-2', tier: 2, name: 'Zone / Ward Sanitary Inspector', name_hi: 'जोन / वार्ड स्वच्छता निरीक्षक', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-san-3', tier: 3, name: 'Sanitation Supervisor', name_hi: 'स्वच्छता पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-san-4', tier: 4, name: 'Sanitation Workers / Collection Crew', name_hi: 'सफाई कर्मचारी / कचरा संग्रहण दल', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  water: [
+    { designation_id: 'default-wat-1', tier: 1, name: 'Water / Sewerage Department Head', name_hi: 'जल प्रदाय एवं सीवरेज विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-wat-2', tier: 2, name: 'Area Assistant / Junior Engineer', name_hi: 'क्षेत्रीय सहायक / कनिष्ठ यंत्री', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-wat-3', tier: 3, name: 'Pipeline / Pump Supervisor', name_hi: 'पाइपलाइन / पंप पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-wat-4', tier: 4, name: 'Plumbers / Pump Operators / Sewer Crew', name_hi: 'प्लंबर / पंप ऑपरेटर / सीवर टीम', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  roads: [
+    { designation_id: 'default-rd-1', tier: 1, name: 'Public Works / Engineering Head', name_hi: 'लोक निर्माण / इंजीनियरिंग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-rd-2', tier: 2, name: 'Assistant / Junior Engineer', name_hi: 'सहायक / कनिष्ठ यंत्री (सिविल)', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-rd-3', tier: 3, name: 'Site Supervisor', name_hi: 'साइट पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-rd-4', tier: 4, name: 'Masons / Repair Crew / Contractor Team', name_hi: 'मिस्त्री / मरम्मत दल / ठेकेदार टीम', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  electricity: [
+    { designation_id: 'default-el-1', tier: 1, name: 'Electrical Department Head', name_hi: 'विद्युत विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-el-2', tier: 2, name: 'Area Electrical Engineer', name_hi: 'क्षेत्रीय विद्युत अभियंता', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-el-3', tier: 3, name: 'Electrical Supervisor', name_hi: 'विद्युत पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-el-4', tier: 4, name: 'Electricians / Lineworkers / Helpers', name_hi: 'इलेक्ट्रीशियन / लाइनमैन / सहायक', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  parks: [
+    { designation_id: 'default-pk-1', tier: 1, name: 'Horticulture Department Head', name_hi: 'उद्यान विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-pk-2', tier: 2, name: 'Area Horticulture Officer', name_hi: 'क्षेत्रीय उद्यान अधिकारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-pk-3', tier: 3, name: 'Park / Garden Supervisor', name_hi: 'उद्यान पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-pk-4', tier: 4, name: 'Gardeners / Maintenance Staff', name_hi: 'माली / रख-रखाव कर्मचारी', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  encroachment: [
+    { designation_id: 'default-enc-1', tier: 1, name: 'Building / Planning / Enforcement Head', name_hi: 'भवन अनुज्ञा एवं अतिक्रमण विरोधी प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-enc-2', tier: 2, name: 'Building Officer / Area Inspector', name_hi: 'भवन अधिकारी / क्षेत्रीय निरीक्षक', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-enc-3', tier: 3, name: 'Inspection / Enforcement Supervisor', name_hi: 'प्रवर्तन पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-enc-4', tier: 4, name: 'Surveyors / Inspectors / Field Crew', name_hi: 'सर्वेयर / फील्ड दल', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  revenue: [
+    { designation_id: 'default-rev-1', tier: 1, name: 'Revenue Officer', name_hi: 'राजस्व अधिकारी', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-rev-2', tier: 2, name: 'Area Revenue Inspector', name_hi: 'क्षेत्रीय राजस्व निरीक्षक (RI)', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-rev-3', tier: 3, name: 'Tax / Collection Supervisor', name_hi: 'कर / वसूली पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-rev-4', tier: 4, name: 'Tax Assistants / Billing / Collection Staff', name_hi: 'कर सहायक / बिलिंग व वसूली स्टाफ', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  accounts: [
+    { designation_id: 'default-acc-1', tier: 1, name: 'Finance / Accounts Head', name_hi: 'वित्त एवं लेखा प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-acc-2', tier: 2, name: 'Accounts Officer / Stores In-charge', name_hi: 'लेखा अधिकारी / स्टोर प्रभारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-acc-3', tier: 3, name: 'Accountant / Storekeeper', name_hi: 'लेखाकार / स्टोरकीपर', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-acc-4', tier: 4, name: 'Accounts Assistants / Inventory Staff', name_hi: 'लेखा सहायक / इन्वेंटरी स्टाफ', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  administration: [
+    { designation_id: 'default-adm-1', tier: 1, name: 'Administration / Establishment Head', name_hi: 'सामान्य प्रशासन / स्थापना प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-adm-2', tier: 2, name: 'Establishment / Personnel Officer', name_hi: 'स्थापना / कार्मिक अधिकारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-adm-3', tier: 3, name: 'Office / Staff Coordinator', name_hi: 'कार्यालय / स्टाफ समन्वयक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-adm-4', tier: 4, name: 'Clerks / Records / Support Staff', name_hi: 'लिपिक / रिकॉर्ड / सहायक कर्मचारी', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  it_control_room: [
+    { designation_id: 'default-it-1', tier: 1, name: 'IT / Citizen Services Head', name_hi: 'सूचना प्रौद्योगिकी / नागरिक सेवा प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-it-2', tier: 2, name: 'System / Control Room In-charge', name_hi: 'सिस्टम / कंट्रोल रूम प्रभारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-it-3', tier: 3, name: 'Shift Supervisor', name_hi: 'शिफ्ट पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-it-4', tier: 4, name: 'Call Operators / Ticket / Data Staff', name_hi: 'कॉल ऑपरेटर / टिकट प्रबंधन स्टाफ', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  fleet: [
+    { designation_id: 'default-fl-1', tier: 1, name: 'Fleet / Transport Department Head', name_hi: 'परिवहन एवं वर्कशॉप विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-fl-2', tier: 2, name: 'Fleet / Workshop In-charge', name_hi: 'फ्लीट / वर्कशॉप प्रभारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-fl-3', tier: 3, name: 'Route / Vehicle Supervisor', name_hi: 'रूट / वाहन पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-fl-4', tier: 4, name: 'Drivers / Mechanics / Vehicle Assistants', name_hi: 'चालक / मैकेनिक / वाहन सहायक', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+  fire: [
+    { designation_id: 'default-fr-1', tier: 1, name: 'Fire Services Head', name_hi: 'अग्निशमन सेवा प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+    { designation_id: 'default-fr-2', tier: 2, name: 'Station / Shift In-charge', name_hi: 'स्टेशन / शिफ्ट प्रभारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+    { designation_id: 'default-fr-3', tier: 3, name: 'Crew Leader / Lead Firefighter', name_hi: 'दल नायक / लीड फायर फाइटर', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+    { designation_id: 'default-fr-4', tier: 4, name: 'Firefighters / Drivers / Crew', name_hi: 'अग्निशामक / चालक / रेस्क्यू क्रू', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
+  ],
+};
+
+const GENERIC_DEFAULT_DESIGNATIONS: Designation[] = [
+  { designation_id: 'default-generic-1', tier: 1, name: 'Department Head', name_hi: 'विभाग प्रमुख', hierarchy_code: 'department_head', maps_to_role: 'department_head' },
+  { designation_id: 'default-generic-2', tier: 2, name: 'Area / Zone / Ward Officer', name_hi: 'क्षेत्रीय / जोनल / वार्ड अधिकारी', hierarchy_code: 'area_officer', maps_to_role: 'supervisor' },
+  { designation_id: 'default-generic-3', tier: 3, name: 'Supervisor', name_hi: 'पर्यवेक्षक', hierarchy_code: 'supervisor', maps_to_role: 'supervisor' },
+  { designation_id: 'default-generic-4', tier: 4, name: 'Operational Staff', name_hi: 'परिचालन कर्मचारी', hierarchy_code: 'operational_staff', maps_to_role: 'field_employee' },
 ];
 
   /* ---------- loads (use the admin's own client) ---------- */
@@ -109,16 +184,21 @@ const DEFAULT_DESIGNATIONS: Designation[] = [
 
   useEffect(() => {
     if (!selectedDept) { setDesignations([]); setSelectedDesig(null); return; }
+
+    const deptObj = departments.find(d => d.id === selectedDept);
+    const deptSlug = deptObj?.slug || '';
+    const fallbackList = DEPARTMENT_DESIGNATIONS_MAP[deptSlug] || GENERIC_DEFAULT_DESIGNATIONS;
+
     supabase.rpc('list_chain_for_dept', { p_dept_id: selectedDept })
       .then(({ data, error: e }) => {
         if (!e && data && (data as Designation[]).length > 0) {
           setDesignations(data as Designation[]);
         } else {
-          setDesignations(DEFAULT_DESIGNATIONS);
+          setDesignations(fallbackList);
         }
         setSelectedDesig(null);
       });
-  }, [selectedDept]);
+  }, [selectedDept, departments]);
 
   /* ---------- derived ---------- */
   const isDeptRole = roleKey.startsWith('dept:');

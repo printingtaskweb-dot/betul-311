@@ -69,6 +69,21 @@ const COMMON_AREAS = [
   'Railway Colony',
 ];
 
+const DEPT_TIER_NAMES: Record<string, string[]> = {
+  sanitation: ['Health / Sanitation Officer', 'Zone / Ward Sanitary Inspector', 'Sanitation Supervisor', 'Collection Crew'],
+  water: ['Water / Sewerage Head', 'Area Assistant Engineer', 'Pipeline / Pump Supervisor', 'Plumbers & Sewer Crew'],
+  roads: ['Public Works Head', 'Assistant Engineer (Civil)', 'Site Supervisor', 'Repair Crew & Masons'],
+  electricity: ['Electrical Dept Head', 'Area Electrical Engineer', 'Electrical Supervisor', 'Lineworkers & Electricians'],
+  parks: ['Horticulture Head', 'Area Horticulture Officer', 'Garden Supervisor', 'Gardeners & Maintenance'],
+  encroachment: ['Enforcement Head', 'Building Inspector', 'Enforcement Supervisor', 'Field Survey Crew'],
+  revenue: ['Revenue Officer', 'Area Revenue Inspector', 'Tax Supervisor', 'Billing & Collection Staff'],
+  accounts: ['Finance / Accounts Head', 'Stores In-charge', 'Accountant / Storekeeper', 'Accounts Assistants'],
+  administration: ['Administration Head', 'Personnel Officer', 'Office Coordinator', 'Clerks & Support Staff'],
+  it_control_room: ['IT Services Head', 'Control Room In-charge', 'Shift Supervisor', 'Helpline Operators'],
+  fleet: ['Fleet / Workshop Head', 'Workshop In-charge', 'Route Supervisor', 'Drivers & Mechanics'],
+  fire: ['Fire Services Head', 'Station / Shift In-charge', 'Crew Leader', 'Frontline Firefighters'],
+};
+
 export const MunicipalAdministratorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -374,6 +389,58 @@ export const MunicipalAdministratorDashboard: React.FC = () => {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
+        </div>
+      </div>
+
+      {/* ── MUNICIPAL HIERARCHY FLOW BANNER ── */}
+      <div
+        style={{
+          background: 'var(--theme-component, #d9d9d9)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          border: '1.5px solid var(--theme-component-border, #bfbfbf)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--gray-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            👑 Municipal Organizational Hierarchy (6-Tier Chain of Command)
+          </span>
+          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--theme-primary, #660033)' }}>
+            12 Operational Departments • 4 Sub-Tiers Each
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 4, fontSize: '0.74rem' }}>
+          <span style={{ background: 'var(--theme-primary, #660033)', color: '#fff', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            🏛️ Municipality
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--theme-primary, #660033)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            👑 Municipal Commissioner
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--gray-800)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            🌟 Deputy Commissioner / Coordinator
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--gray-800)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            🏢 Tier 1: Dept Head
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--gray-800)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            📍 Tier 2: Area Officer
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--gray-800)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            👷 Tier 3: Supervisor
+          </span>
+          <span style={{ color: 'var(--gray-500)', fontWeight: 900 }}>→</span>
+          <span style={{ background: 'var(--theme-bg, #fff4e7)', border: '1px solid var(--theme-component-border, #bfbfbf)', color: 'var(--gray-800)', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            🛠️ Tier 4: Operational Staff
+          </span>
         </div>
       </div>
 
@@ -795,6 +862,19 @@ export const MunicipalAdministratorDashboard: React.FC = () => {
                         Staff ID: {dept.headStaffCode}
                       </div>
                     )}
+                  </div>
+
+                  {/* 4 Sub-Designation Levels */}
+                  <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 3, background: 'rgba(255,255,255,0.2)', padding: '6px 8px', borderRadius: 6 }}>
+                    <div style={{ fontSize: '0.67rem', fontWeight: 800, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      4 Sub-Designation Tiers:
+                    </div>
+                    {(DEPT_TIER_NAMES[dept.slug] || ['Department Head', 'Area / Zone Officer', 'Supervisor', 'Operational Staff']).map((tName, idx) => (
+                      <div key={idx} style={{ fontSize: '0.71rem', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--gray-800)' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--theme-primary, #660033)', fontSize: '0.66rem' }}>T{idx + 1}:</span>
+                        <span>{tName}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
