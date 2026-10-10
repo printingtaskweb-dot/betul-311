@@ -8,8 +8,9 @@ import { useStorage } from '../hooks/useStorage';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { LocationPicker } from '../components/common/LocationPicker';
 import { BottomNav } from '../components/BottomNav';
+import { watermarkPhoto } from '../lib/watermarkPhoto';
 import type { Department } from '../lib/supabase';
-import { ArrowLeft, CheckCircle2, MapPin, Loader2, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, Search, X } from 'lucide-react';
 
 export const ComplaintForm: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -24,27 +25,27 @@ export const ComplaintForm: React.FC = () => {
   const [description, setDescription] = useState('');
   const [citizenName, setCitizenName] = useState('');
   const [citizenPhone, setCitizenPhone] = useState('');
+
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [watermarking, setWatermarking] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [ticket, setTicket] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔹 Dropdown state
   const [deptOpen, setDeptOpen] = useState(false);
   const [deptQuery, setDeptQuery] = useState('');
   const deptBoxRef = useRef<HTMLDivElement>(null);
 
-  // Location is considered "ready" only when we have coordinates
   const locationReady = !!loc.latitude && !!loc.longitude;
 
-  // 🔹 Auto-detect location on mount (no manual button needed)
   useEffect(() => {
     loc.detectLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pre-select dept from URL
   useEffect(() => {
     const slug = searchParams.get('dept');
     if (slug && departments.length > 0) {
@@ -53,42 +54,35 @@ export const ComplaintForm: React.FC = () => {
     }
   }, [searchParams, departments]);
 
-  // 🔹 If location gets cleared, drop any attached photo
   useEffect(() => {
-    if (!locationReady && photoFile) {
+    if (!locationReady && originalFile) {
+      setOriginalFile(null);
       setPhotoFile(null);
       setPreview(null);
     }
-  }, [locationReady, photoFile]);
+  }, [locationReady, originalFile]);
 
-  // 🔹 Close dropdown on outside click / Escape
   useEffect(() => {
     if (!deptOpen) return;
-
     const onDocClick = (e: MouseEvent) => {
       if (deptBoxRef.current && !deptBoxRef.current.contains(e.target as Node)) {
         setDeptOpen(false);
       }
     };
-
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setDeptOpen(false);
     };
-
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onKey);
-
     return () => {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onKey);
     };
   }, [deptOpen]);
 
-  // 🔹 Filter departments by search query
   const filteredDepts = useMemo(() => {
     const q = deptQuery.trim().toLowerCase();
     if (!q) return departments;
-
     return departments.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
@@ -96,11 +90,65 @@ export const ComplaintForm: React.FC = () => {
     );
   }, [departments, deptQuery]);
 
-  const handleFileSelected = (file: File) => {
-    if (!locationReady) return; // guard
-    setPhotoFile(file);
-    setPreview(URL.createObjectURL(file));
+  const handleFileSelected = async (file: File) => {
+    if (!locationReady) return;
+    setOriginalFile(file);
+    setWatermarking(true);
+    setError(null);
+
+    try {
+      const stamped = await watermarkPhoto(file, {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        accuracy: loc.accuracy,
+        address: loc.address,
+        timestamp: new Date(),
+        appName: 'Swachh 311 · IMC',
+        departmentName: selectedDept?.name ?? null,
+      });
+      setPhotoFile(stamped);
+      setPreview(URL.createObjectURL(stamped));
+    } catch (err) {
+      setPhotoFile(file);
+      setPreview(URL.createObjectURL(file));
+      console.warn('Watermark failed, using original photo', err);
+    } finally {
+      setWatermarking(false);
+    }
   };
+
+  const handleClearPhoto = () => {
+    setOriginalFile(null);
+    setPhotoFile(null);
+    setPreview(null);
+  };
+
+  useEffect(() => {
+    if (!originalFile || !locationReady) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const stamped = await watermarkPhoto(originalFile, {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          accuracy: loc.accuracy,
+          address: loc.address,
+          timestamp: new Date(),
+          appName: 'Swachh 311 · IMC',
+          departmentName: selectedDept?.name ?? null,
+        });
+        if (cancelled) return;
+        setPhotoFile(stamped);
+        setPreview(URL.createObjectURL(stamped));
+      } catch {
+        /* keep existing */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDept?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,8 +160,6 @@ export const ComplaintForm: React.FC = () => {
           : 'Please select a department.'
       );
     }
-
-    // Location check BEFORE photo check
     if (!locationReady) {
       return setError(
         language === 'hi'
@@ -121,7 +167,6 @@ export const ComplaintForm: React.FC = () => {
           : 'Please wait for your location to be auto-detected.'
       );
     }
-
     if (!photoFile) {
       return setError(
         language === 'hi'
@@ -129,7 +174,6 @@ export const ComplaintForm: React.FC = () => {
           : 'Please attach a photo.'
       );
     }
-
     if (!description.trim()) {
       return setError(
         language === 'hi'
@@ -163,7 +207,6 @@ export const ComplaintForm: React.FC = () => {
     setSubmitting(false);
   };
 
-  // Success screen
   if (ticket) {
     return (
       <div
@@ -234,13 +277,7 @@ export const ComplaintForm: React.FC = () => {
               ? 'इस टिकट नंबर को सुरक्षित रखें। विभाग द्वारा समाधान के बाद आपको इसे सत्यापित करने का अवसर मिलेगा।'
               : 'Save this ticket number to track resolution progress. You will be able to verify once resolved.'}
           </p>
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              justifyContent: 'center',
-            }}
-          >
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button
               onClick={() => navigate(`/track?ticket=${ticket}`)}
               style={{
@@ -286,7 +323,6 @@ export const ComplaintForm: React.FC = () => {
         paddingBottom: 90,
       }}
     >
-      {/* Header */}
       <header
         style={{
           background:
@@ -352,7 +388,7 @@ export const ComplaintForm: React.FC = () => {
             boxShadow: 'var(--shadow-sm)',
           }}
         >
-          {/* ===== Department selector — DROPDOWN ===== */}
+          {/* Department selector */}
           <div style={{ marginBottom: 22 }}>
             <label style={labelStyle}>
               🏢 {t(language, 'selectDept')} *
@@ -368,7 +404,6 @@ export const ComplaintForm: React.FC = () => {
                 ref={deptBoxRef}
                 style={{ position: 'relative', marginTop: 8 }}
               >
-                {/* Trigger */}
                 <button
                   type="button"
                   onClick={() => {
@@ -431,7 +466,6 @@ export const ComplaintForm: React.FC = () => {
                   />
                 </button>
 
-                {/* Menu */}
                 {deptOpen && (
                   <div
                     style={{
@@ -448,7 +482,6 @@ export const ComplaintForm: React.FC = () => {
                       overflow: 'hidden',
                     }}
                   >
-                    {/* Search box */}
                     <div
                       style={{
                         display: 'flex',
@@ -498,7 +531,6 @@ export const ComplaintForm: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Options list */}
                     <div style={{ maxHeight: 260, overflowY: 'auto' }}>
                       {filteredDepts.length === 0 ? (
                         <div
@@ -516,7 +548,6 @@ export const ComplaintForm: React.FC = () => {
                       ) : (
                         filteredDepts.map((dept) => {
                           const isSelected = selectedDept?.id === dept.id;
-
                           return (
                             <button
                               key={dept.id}
@@ -579,149 +610,125 @@ export const ComplaintForm: React.FC = () => {
               </div>
             )}
           </div>
-          {/* ===== /Department selector ===== */}
 
-          {/* Location — moved ABOVE photo, auto-detected on mount */}
-          <div style={{ marginBottom: 22 }}>
+          {/* Citizen name */}
+          <div style={{ marginBottom: 18 }}>
             <label style={labelStyle}>
-              📍 {t(language, 'detectLocation')} *
+              👤 {language === 'hi' ? 'आपका नाम' : 'Your Name'}
             </label>
-            <div style={{ marginTop: 8 }}>
-              <LocationPicker
-  latitude={loc.latitude}
-  longitude={loc.longitude}
-  accuracy={loc.accuracy}
-  address={loc.address}
-  loading={loc.loading}
-  error={loc.error}
-  onDetect={loc.detectLocation}
-/>
-              
-            </div>
-            {locationReady && !loc.loading && (
-              <div
+            <input
+              type="text"
+              value={citizenName}
+              onChange={(e) => setCitizenName(e.target.value)}
+              placeholder={language === 'hi' ? 'वैकल्पिक' : 'Optional'}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Citizen phone */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>
+              📞 {language === 'hi' ? 'मोबाइल नंबर' : 'Mobile Number'}
+            </label>
+            <input
+              type="tel"
+              value={citizenPhone}
+              onChange={(e) => setCitizenPhone(e.target.value)}
+              placeholder={language === 'hi' ? 'वैकल्पिक' : 'Optional'}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Description */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>
+              📝 {language === 'hi' ? 'समस्या का विवरण' : 'Description'} *
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder={
+                language === 'hi'
+                  ? 'कृपया समस्या का विस्तार से वर्णन करें…'
+                  : 'Please describe the issue in detail…'
+              }
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          </div>
+
+          {/* Photo */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>
+              📷 {language === 'hi' ? 'फोटो अपलोड करें' : 'Upload Photo'} *
+            </label>
+            <PhotoUploader
+              onFileSelected={handleFileSelected}
+              preview={preview}
+              onClear={handleClearPhoto}
+              disabled={!locationReady || watermarking}
+            />
+
+            {watermarking && (
+              <p
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginTop: 8,
+                  marginTop: 6,
+                  fontSize: '0.78rem',
+                  color: 'var(--theme-primary, #660033)',
+                  fontWeight: 600,
+                }}
+              >
+                {language === 'hi'
+                  ? 'फोटो पर GPS वॉटरमार्क लगाया जा रहा है…'
+                  : 'Adding GPS watermark to photo…'}
+              </p>
+            )}
+
+            {!locationReady && (
+              <p
+                style={{
+                  marginTop: 6,
+                  fontSize: '0.78rem',
+                  color: 'var(--gray-500)',
+                }}
+              >
+                {language === 'hi'
+                  ? 'स्थान दर्ज होने के बाद ही फोटो अपलोड कर सकते हैं।'
+                  : 'Photo can be uploaded only after location is detected.'}
+              </p>
+            )}
+
+            {photoFile && !watermarking && (
+              <p
+                style={{
+                  marginTop: 6,
                   fontSize: '0.78rem',
                   color: 'var(--green-700)',
                   fontWeight: 600,
                 }}
               >
-                <MapPin size={12} />
+                ✓{' '}
                 {language === 'hi'
-                  ? 'स्थान सफलतापूर्वक दर्ज हो गया'
-                  : 'Location detected successfully'}
-              </div>
+                  ? 'फोटो पर GPS वॉटरमार्क लग गया है।'
+                  : 'GPS watermark applied to photo.'}
+              </p>
             )}
           </div>
 
-          {/* Photo — disabled until location ready */}
-          <div style={{ marginBottom: 22 }}>
-            <label
-              style={{
-                ...labelStyle,
-                opacity: locationReady ? 1 : 0.5,
-              }}
-            >
-              📸 {t(language, 'uploadPhoto')} *
-            </label>
-            <div style={{ marginTop: 8, position: 'relative' }}>
-              <div
-                style={{
-                  opacity: locationReady ? 1 : 0.5,
-                  pointerEvents: locationReady ? 'auto' : 'none',
-                }}
-              >
-                <PhotoUploader
-                  onFileSelected={handleFileSelected}
-                  preview={preview}
-                  onClear={() => {
-                    setPhotoFile(null);
-                    setPreview(null);
-                  }}
-                  uploading={uploading}
-                />
-              </div>
-
-              {!locationReady && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: '0.78rem',
-                    color: 'var(--gray-600)',
-                    fontWeight: 600,
-                  }}
-                >
-                  {loc.loading ? (
-                    <>
-                      <Loader2 size={12} className="spin" />
-                      {language === 'hi'
-                        ? 'स्थान का पता लगाया जा रहा है… फोटो अपलोड करने के लिए कृपया प्रतीक्षा करें'
-                        : 'Detecting location… please wait before uploading a photo'}
-                    </>
-                  ) : (
-                    <>
-                      <MapPin size={12} />
-                      {language === 'hi'
-                        ? 'फोटो अपलोड करने के लिए पहले स्थान दर्ज होना आवश्यक है'
-                        : 'Location must be detected before uploading a photo'}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
+          {/* Location */}
           <div style={{ marginBottom: 22 }}>
             <label style={labelStyle}>
-              📝 {t(language, 'description')} *
+              📍 {language === 'hi' ? 'स्थान' : 'Location'} *
             </label>
-            <textarea
-              placeholder={
-                language === 'hi'
-                  ? 'समस्या का स्पष्ट विवरण दें (उदा. वार्ड 12 में मुख्य सड़क पर कचरा जमा है)...'
-                  : 'Describe the issue clearly with landmark details…'
-              }
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              style={{
-                ...inputStyle,
-                marginTop: 8,
-                resize: 'vertical',
-              }}
+            <LocationPicker
+              latitude={loc.latitude}
+              longitude={loc.longitude}
+              accuracy={loc.accuracy}
+              address={loc.address}
+              loading={loc.loading}
+              error={loc.error}
+              onDetect={loc.detectLocation}
             />
-          </div>
-
-          {/* Contact Details */}
-          <div style={{ marginBottom: 24 }}>
-            <label style={labelStyle}>
-              👤 {t(language, 'yourDetails')} ({t(language, 'optional')})
-            </label>
-            <div
-              className="two-col-responsive"
-              style={{ marginTop: 8 }}
-            >
-              <input
-                placeholder={t(language, 'name')}
-                value={citizenName}
-                onChange={(e) => setCitizenName(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder={t(language, 'phone')}
-                value={citizenPhone}
-                onChange={(e) => setCitizenPhone(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
           </div>
 
           {error && (
@@ -743,21 +750,23 @@ export const ComplaintForm: React.FC = () => {
 
           <button
             type="submit"
-            disabled={submitting || uploading || !locationReady}
+            disabled={
+              submitting || uploading || watermarking || !locationReady
+            }
             style={{
               width: '100%',
               padding: '14px 0',
               borderRadius: 'var(--radius-md)',
               border: 'none',
               background:
-                submitting || uploading || !locationReady
+                submitting || uploading || watermarking || !locationReady
                   ? 'var(--gray-300)'
                   : 'var(--primary-gradient, linear-gradient(135deg, #660033, #800040))',
               color: '#fff',
               fontWeight: 800,
               fontSize: '1rem',
               cursor:
-                submitting || uploading || !locationReady
+                submitting || uploading || watermarking || !locationReady
                   ? 'not-allowed'
                   : 'pointer',
               boxShadow: '0 4px 16px rgba(102,0,51,0.3)',
@@ -766,6 +775,10 @@ export const ComplaintForm: React.FC = () => {
           >
             {submitting
               ? 'Submitting…'
+              : watermarking
+              ? language === 'hi'
+                ? 'वॉटरमार्क लगाया जा रहा है…'
+                : 'Adding watermark…'
               : !locationReady
               ? language === 'hi'
                 ? 'स्थान दर्ज होने की प्रतीक्षा…'
@@ -780,11 +793,13 @@ export const ComplaintForm: React.FC = () => {
   );
 };
 
+
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: '0.88rem',
   fontWeight: 700,
   color: 'var(--gray-800)',
+  marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
