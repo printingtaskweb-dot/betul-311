@@ -587,6 +587,15 @@ export const ComplaintForm: React.FC = () => {
               📍 {t(language, 'detectLocation')} *
             </label>
             <div style={{ marginTop: 8 }}>
+              <LocationPicker
+  latitude={loc.latitude}
+  longitude={loc.longitude}
+  accuracy={loc.accuracy}
+  address={loc.address}
+  loading={loc.loading}
+  error={loc.error}
+  onDetect={loc.detectLocation}
+/>
               
             </div>
             {locationReady && !loc.loading && (
