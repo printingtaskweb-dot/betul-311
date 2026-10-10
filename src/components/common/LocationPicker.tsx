@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MapPin, Loader2, Navigation, ExternalLink } from 'lucide-react';
 
@@ -15,13 +14,11 @@ interface LocationPickerProps {
 export const LocationPicker: React.FC<LocationPickerProps> = ({
   latitude,
   longitude,
-  accuracy,
   address,
   loading,
   error,
   onDetect,
 }) => {
-  // Check null explicitly because 0 is a valid coordinate.
   const locationReady =
     latitude != null &&
     longitude != null &&
@@ -116,30 +113,6 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
       {locationReady && (
         <div style={{ marginTop: 10 }}>
-          <div
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              overflowWrap: 'anywhere',
-              color: 'var(--theme-primary, #660033)',
-            }}
-          >
-            {latitude.toFixed(6)}, {longitude.toFixed(6)}
-          </div>
-
-          {accuracy != null && Number.isFinite(accuracy) && (
-            <p
-              style={{
-                margin: '5px 0',
-                fontSize: '0.75rem',
-                color: 'var(--gray-600)',
-              }}
-            >
-              Reported GPS accuracy: ±{Math.round(accuracy)} m
-            </p>
-          )}
-
           {address && (
             <p
               style={{
