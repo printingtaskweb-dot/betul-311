@@ -5,12 +5,14 @@ import { useDepartments } from '../../hooks/useComplaints';
 import { ComplaintTable } from '../../components/admin/ComplaintTable';
 import AdminStaffRegistration from '../../components/admin/AdminStaffRegistration';
 import AdminNewsModeration from '../../components/admin/AdminNewsModeration';
+import AdminUserDirectory from '../../components/admin/AdminUserDirectory';
+import MunicipalAdministratorDashboard from './MunicipalAdministratorDashboard';
 import { supabase } from '../../lib/supabase';
 
 import type { Department } from '../../lib/supabase';
-import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, UserPlus, Newspaper } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, ArrowLeft, UserPlus, Newspaper, Users, Building2 } from 'lucide-react';
 
-type Tab = 'complaints' | 'register' | 'local_news';
+type Tab = 'complaints' | 'municipal' | 'users' | 'register' | 'local_news';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -221,6 +223,36 @@ export const AdminDashboard: React.FC = () => {
             <span>🗂️</span> All Complaints
           </button>
 
+          {/* Municipal Administrator Dashboard */}
+          <button
+            onClick={() => {
+              setActiveTab('municipal');
+              setActiveDept(null);
+              setMobileMenuOpen(false);
+            }}
+            style={navBtnStyle(activeTab === 'municipal', 4)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Building2 size={16} color={activeTab === 'municipal' ? '#fff' : 'var(--gray-500)'} />
+              <span>Municipal Head</span>
+            </div>
+          </button>
+
+          {/* User Search & Directory */}
+          <button
+            onClick={() => {
+              setActiveTab('users');
+              setActiveDept(null);
+              setMobileMenuOpen(false);
+            }}
+            style={navBtnStyle(activeTab === 'users', 4)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Users size={16} color={activeTab === 'users' ? '#fff' : 'var(--gray-500)'} />
+              <span>User Directory & Search</span>
+            </div>
+          </button>
+
           {/* Register Staff */}
           <button
             onClick={() => {
@@ -337,7 +369,15 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         <main style={{ flex: 1, padding: 'clamp(14px, 2.5vw, 24px)', overflowX: 'hidden', minWidth: 0 }}>
-          {activeTab === 'register' ? (
+          {activeTab === 'municipal' ? (
+            <div>
+              <MunicipalAdministratorDashboard />
+            </div>
+          ) : activeTab === 'users' ? (
+            <div>
+              <AdminUserDirectory />
+            </div>
+          ) : activeTab === 'register' ? (
             <div>
               {sectionHeader(
                 <UserPlus size={22} color="var(--theme-primary, #660033)" />,

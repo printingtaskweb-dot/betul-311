@@ -12,6 +12,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import DeptLogin from './pages/DeptLogin';
 import DeptDashboard from './pages/DeptDashboard';
+import MunicipalAdministratorDashboard from './pages/admin/MunicipalAdministratorDashboard';
 import { FloatingNewsWidget } from './components/FloatingNewsWidget';
 
 interface ErrorBoundaryProps {
@@ -116,6 +117,7 @@ const AppRoutes: React.FC = () => (
     {/* Admin routes */}
     <Route path="/admin" element={<AdminLogin />} />
     <Route path="/admin/dashboard" element={<AdminDashboard />} />
+    <Route path="/municipal/dashboard" element={<MunicipalAdministratorDashboard />} />
 
     {/* Fallback */}
     <Route path="*" element={<Navigate to="/" replace />} />
